@@ -312,11 +312,6 @@
         <button id="clearForEveryone">Clear for Everyone</button>
         <button id="cancelClear">Cancel</button>
       </div>
-      
-      <!-- File Transfer -->
-      <div style="margin-top: 10px;">
-        <input type="file" id="fileInput">
-      </div>
     </div>
   </div>
 
@@ -354,7 +349,6 @@
     const clearForMeButton = document.getElementById('clearForMe');
     const clearForEveryoneButton = document.getElementById('clearForEveryone');
     const cancelClearButton = document.getElementById('cancelClear');
-    const fileInput = document.getElementById('fileInput');
     const typingIndicator = document.getElementById('typingIndicator');
     const emojiToggle = document.getElementById('emojiToggle');
     const emojiMenu = document.getElementById('emojiMenu');
@@ -521,10 +515,15 @@
         addMessage(msg.name, msg.text, false, new Date(msg.time));
       } else if (msg.type === "typing") {
         showTypingIndicator(msg.name);
-      } else if (msg.type === "file") {
-        addFileMessage(msg.name, msg.fileName, msg.fileData, new Date(msg.time));
       } else if (msg.type === "clearEveryone") {
         clearChatArea();
+        // Display a system message indicating who cleared the chat
+        const sysMsg = document.createElement('div');
+        sysMsg.className = 'message';
+        sysMsg.style.fontStyle = "italic";
+        sysMsg.textContent = "Chat was cleared by " + msg.name;
+        chatArea.appendChild(sysMsg);
+        chatArea.scrollTop = chatArea.scrollHeight;
       } else if (msg.type === "leave") {
         // Add a system message when a user leaves
         const sysMsg = document.createElement('div');
@@ -549,16 +548,6 @@
       chatArea.appendChild(msgDiv);
       chatArea.scrollTop = chatArea.scrollHeight;
       if (!isSelf) playNotificationSound();
-    }
-
-    function addFileMessage(sender, fileName, fileData, time) {
-      const msgDiv = document.createElement('div');
-      msgDiv.className = 'message';
-      const timeString = `<span class="timestamp">${time.toLocaleTimeString()}</span>`;
-      msgDiv.innerHTML = `<strong>${sender}</strong> sent a file: <a href="${fileData}" download="${fileName}">${fileName}</a> ${timeString}`;
-      chatArea.appendChild(msgDiv);
-      chatArea.scrollTop = chatArea.scrollHeight;
-      if (sender !== userName) playNotificationSound();
     }
 
     /* ------------------------
@@ -597,28 +586,6 @@
     }
 
     /* ------------------------
-       FILE TRANSFER
-    ------------------------ */
-    fileInput.addEventListener('change', () => {
-      const file = fileInput.files[0];
-      if (file && dataChannel && dataChannel.readyState === "open") {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const msg = {
-            type: "file",
-            name: userName,
-            fileName: file.name,
-            fileData: reader.result,
-            time: new Date().toISOString()
-          };
-          dataChannel.send(JSON.stringify(msg));
-          addFileMessage(userName, file.name, reader.result, new Date());
-        };
-        reader.readAsDataURL(file);
-      }
-    });
-
-    /* ------------------------
        NOTIFICATION SOUND
     ------------------------ */
     function playNotificationSound() {
@@ -644,6 +611,7 @@
       if (dataChannel && dataChannel.readyState === "open") {
         const msg = {
           type: "clearEveryone",
+          name: userName,
           time: new Date().toISOString()
         };
         dataChannel.send(JSON.stringify(msg));
