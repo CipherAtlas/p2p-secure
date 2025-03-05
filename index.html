@@ -304,11 +304,18 @@
         font-weight: bold;
       }
 
-      /* --- ID DISPLAY (for new signaling) --- */
+      /* --- ID DISPLAY --- */
       #clientIdDisplay {
         text-align: center;
         margin: 5px 0;
         font-size: 1.1em;
+      }
+
+      /* --- SERVER STATUS DIV --- */
+      #serverStatus {
+        text-align: center;
+        margin-bottom: 10px;
+        font-style: italic;
       }
 
       /* --- RESPONSIVE (MOBILE) --- */
@@ -344,6 +351,9 @@
       </div>
       <h1>Atlas's P2P Communication</h1>
 
+      <!-- A status message for connecting/spinning up the server -->
+      <div id="serverStatus"></div>
+
       <!-- Signaling Section -->
       <div id="signaling" class="section">
         <!-- Role Selection -->
@@ -358,19 +368,19 @@
           <button id="setUserName">Set Name</button>
         </div>
 
-        <!-- Show the user’s unique client ID once connected to WS server -->
+        <!-- Show the user’s unique client ID once connected -->
         <div id="clientIdDisplay" style="display: none;">
           <strong>Your ID:</strong> <span id="clientIdValue">N/A</span>
         </div>
 
-        <!-- For HOST: Type your peer's ID to call them -->
+        <!-- For HOST: Type your peer's ID -->
         <div id="hostSection" style="display: none;">
           <p><strong>Peer's ID:</strong></p>
           <input type="text" id="peerIdInput" placeholder="Enter the peer's ID" />
           <button id="callPeer">Call Peer</button>
         </div>
 
-        <!-- For PEER: Wait for an incoming offer. No input needed. -->
+        <!-- For PEER: Wait for an incoming offer -->
         <div id="peerSection" style="display: none;">
           <p>Waiting for incoming call from the Host...</p>
         </div>
@@ -441,35 +451,141 @@
 
     <script>
       /************************************************************
-       *               WEB SOCKET SIGNALING SETTINGS
+       * 1) Server Wake-Up & Connecting Animation
        ************************************************************/
-      // Replace with your deployed server's WebSocket URL:
+      // Replace these with your own Render domain:
       const SIGNALING_SERVER_URL = "wss://p2p-secure-server.onrender.com";
+      const HTTP_WAKE_URL = "https://p2p-secure-server.onrender.com"; // for a quick "fetch" to wake up
 
-      let socket;                 // WebSocket to signaling server
-      let clientId = null;        // Assigned by the server
-      let userName = "Anonymous"; // Set by the user
-      let selectedRole = null;    // "host" or "peer"
+      const serverStatus = document.getElementById("serverStatus");
+
+      let connectingDotsInterval;
+      let connectionTimeout;
+
+      function startConnectingAnimation() {
+        let dotCount = 0;
+        connectingDotsInterval = setInterval(() => {
+          dotCount = (dotCount % 3) + 1; 
+          let dots = ".".repeat(dotCount);
+          serverStatus.textContent = "Connecting" + dots;
+        }, 500);
+      }
+
+      function stopConnectingAnimation() {
+        clearInterval(connectingDotsInterval);
+      }
+
+      function showLongWaitMessage() {
+        serverStatus.textContent = "Still connecting... The server may be waking up. Please keep waiting or refresh the page.";
+      }
+
+      // We'll "ping" the server to try to wake it, then attempt the WebSocket
+      function initiateServerConnection() {
+        // Show "Connecting" with animated dots
+        startConnectingAnimation();
+
+        // If it takes >10 seconds, show a longer message
+        connectionTimeout = setTimeout(showLongWaitMessage, 10000);
+
+        // Attempt a quick fetch to wake the server's free tier
+        fetch(HTTP_WAKE_URL)
+          .then(() => {
+            // Now connect to the WebSocket
+            connectToSignalingServer();
+          })
+          .catch(() => {
+            // Even if fetch fails, try WS anyway
+            connectToSignalingServer();
+          });
+      }
 
       /************************************************************
-       *            WEBRTC + ENCRYPTION + CHAT SETTINGS
+       * 2) Connect to Signaling Server via WebSocket
+       ************************************************************/
+      let socket;
+      let clientId = null;        // Assigned by server
+      let userName = "Anonymous"; // Set by user
+      let selectedRole = null;    // "host" or "peer"
+
+      function connectToSignalingServer() {
+        socket = new WebSocket(SIGNALING_SERVER_URL);
+
+        socket.onopen = () => {
+          console.log("WebSocket: Connected.");
+          stopConnectingAnimation();
+          clearTimeout(connectionTimeout);
+          serverStatus.textContent = "Connected to server!";
+          // Hide the message after 2 seconds
+          setTimeout(() => {
+            serverStatus.textContent = "";
+          }, 2000);
+        };
+
+        socket.onmessage = (event) => {
+          const msg = JSON.parse(event.data);
+          handleSignalingMessage(msg);
+        };
+
+        socket.onerror = (err) => {
+          console.error("WebSocket error:", err);
+          stopConnectingAnimation();
+          serverStatus.textContent = "Error connecting. The server might be waking up; please wait or refresh.";
+        };
+
+        socket.onclose = () => {
+          console.warn("Socket closed. Possibly the server is sleeping or we got disconnected.");
+          stopConnectingAnimation();
+          serverStatus.textContent = "Disconnected. Server might be sleeping. Refresh or wait.";
+        };
+      }
+
+      function handleSignalingMessage(msg) {
+        if (msg.type === "welcome") {
+          // The server assigned us a unique clientId
+          clientId = msg.clientId;
+          clientIdValue.textContent = clientId;
+          document.getElementById("clientIdDisplay").style.display = "block";
+        } else {
+          switch (msg.type) {
+            case "offer":
+              onOffer(msg.from, msg.data);
+              break;
+            case "answer":
+              onAnswer(msg.from, msg.data);
+              break;
+            case "candidate":
+              onCandidate(msg.from, msg.data);
+              break;
+            default:
+              console.log("Unknown WS message:", msg);
+          }
+        }
+      }
+
+      function sendToServer(target, type, data) {
+        socket.send(JSON.stringify({ target, type, data }));
+      }
+
+      /************************************************************
+       * 3) WebRTC / Chat Variables & Setup
        ************************************************************/
       let localConnection;
       let dataChannel;
-      let peerId = "";          // The ID we want to call (if Host)
+      let peerId = "";          
       let typingTimeout;
       let typingSent = false;
       let selfDestructTime = 10;
       let encryptionPassphrase = "default";
       let encryptionKey = null;
 
-      // DOM Elements
+      // DOM Refs
       const roleSelection = document.getElementById("roleSelection");
       const startHostButton = document.getElementById("startHost");
       const joinHostButton = document.getElementById("joinHost");
       const nameSection = document.getElementById("nameSection");
       const userNameInput = document.getElementById("userNameInput");
       const setUserNameButton = document.getElementById("setUserName");
+
       const clientIdDisplay = document.getElementById("clientIdDisplay");
       const clientIdValue = document.getElementById("clientIdValue");
 
@@ -503,67 +619,60 @@
       const signalingDiv = document.getElementById("signaling");
 
       /************************************************************
-       *                   INITIALIZE WEBSOCKET
+       * 4) Role Selection & Name
        ************************************************************/
-      function connectToSignalingServer() {
-        socket = new WebSocket(SIGNALING_SERVER_URL);
-
-        socket.onopen = () => {
-          console.log("Connected to signaling server");
-        };
-
-        socket.onmessage = (event) => {
-          const msg = JSON.parse(event.data);
-          handleSignalingMessage(msg);
-        };
-
-        socket.onerror = (err) => {
-          console.error("Socket error:", err);
-        };
-
-        socket.onclose = () => {
-          console.warn("Socket closed or unreachable. Refresh page to retry.");
-        };
-      }
-
-      // Process incoming messages from the server
-      function handleSignalingMessage(msg) {
-        if (msg.type === "welcome") {
-          // The server assigned us a unique clientId
-          clientId = msg.clientId;
-          clientIdValue.textContent = clientId;
-          clientIdDisplay.style.display = "block";
+      startHostButton.addEventListener("click", () => {
+        selectedRole = "host";
+        if (userName === "Anonymous") {
+          nameSection.style.display = "block";
         } else {
-          switch (msg.type) {
-            case "offer":
-              onOffer(msg.from, msg.data);
-              break;
-            case "answer":
-              onAnswer(msg.from, msg.data);
-              break;
-            case "candidate":
-              onCandidate(msg.from, msg.data);
-              break;
-            default:
-              console.log("Unknown WS message:", msg);
-          }
+          showHostUI();
         }
-      }
+      });
 
-      // Send a message to the server specifying the target
-      function sendToServer(target, type, data) {
-        socket.send(JSON.stringify({ target, type, data }));
+      joinHostButton.addEventListener("click", () => {
+        selectedRole = "peer";
+        if (userName === "Anonymous") {
+          nameSection.style.display = "block";
+        } else {
+          showPeerUI();
+        }
+      });
+
+      setUserNameButton.addEventListener("click", () => {
+        const name = userNameInput.value.trim();
+        if (name) {
+          userName = name;
+          nameSection.style.display = "none";
+          if (selectedRole === "host") {
+            showHostUI();
+          } else {
+            showPeerUI();
+          }
+        } else {
+          alert("Please enter a valid display name.");
+        }
+      });
+
+      function showHostUI() {
+        roleSelection.style.display = "none";
+        hostSection.style.display = "block";
+        peerSection.style.display = "none";
+      }
+      function showPeerUI() {
+        roleSelection.style.display = "none";
+        peerSection.style.display = "block";
+        hostSection.style.display = "none";
       }
 
       /************************************************************
-       *                   PEER CONNECTION SETUP
+       * 5) Creating the PeerConnection & DataChannel
        ************************************************************/
       function createPeerConnection() {
         localConnection = new RTCPeerConnection({
           iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
         });
 
-        // ICE candidates: forward them to the peer
         localConnection.onicecandidate = (event) => {
           if (event.candidate) {
             sendToServer(peerId, "candidate", event.candidate);
@@ -576,25 +685,22 @@
             localConnection.iceConnectionState === "disconnected" ||
             localConnection.iceConnectionState === "failed"
           ) {
-            console.log("Attempting ICE restart...");
+            console.log("ICE disconnected/failed. Attempting restart...");
             localConnection.restartIce();
           }
         };
 
-        // If we are the "peer" (callee), we'll get the data channel from here
         localConnection.ondatachannel = (event) => {
           dataChannel = event.channel;
           setupDataChannel();
         };
       }
 
-      // Create the data channel (if Host)
       function createDataChannel() {
         dataChannel = localConnection.createDataChannel("chat");
         setupDataChannel();
       }
 
-      // Chat data channel logic
       function setupDataChannel() {
         dataChannel.onopen = () => {
           console.log("Data channel open");
@@ -603,23 +709,22 @@
           chatDiv.style.display = "block";
         };
         dataChannel.onmessage = (event) => {
-          // Attempt to parse as JSON (our encryption logic). If fail, treat as text
+          // Try to parse as JSON (for encryption)
           let incoming;
           try {
             incoming = JSON.parse(event.data);
           } catch {
-            // no encryption
+            // If not JSON, just show raw text
             addMessage("Peer", event.data, false, new Date());
             return;
           }
-
-          // If we parse a structured message, check for encryption, etc.
+          // If it's structured, handle the type
           handleIncomingMessage(incoming);
         };
       }
 
       /************************************************************
-       *   HOST FLOW: Make a call (createOffer -> setLocal -> send)
+       * 6) Host Flow: createOffer -> send to Peer
        ************************************************************/
       async function startHostCall() {
         createPeerConnection();
@@ -633,15 +738,21 @@
           console.error("Error creating offer:", err);
         }
       }
+      callPeerButton.addEventListener("click", () => {
+        peerId = peerIdInput.value.trim();
+        if (!peerId) {
+          alert("Please enter the peer's ID.");
+          return;
+        }
+        startHostCall();
+      });
 
       /************************************************************
-       *   PEER FLOW: On receiving an offer (setRemote -> createAnswer)
+       * 7) Peer Flow: onOffer -> setRemote -> createAnswer -> send
        ************************************************************/
       async function onOffer(from, offer) {
-        // If we're the peer, the host is "from". We'll send back to them
-        peerId = from;
+        peerId = from; 
         createPeerConnection();
-
         try {
           await localConnection.setRemoteDescription(offer);
           const answer = await localConnection.createAnswer();
@@ -652,21 +763,15 @@
         }
       }
 
-      /************************************************************
-       *   HOST: On receiving an answer (setRemoteDesc)
-       ************************************************************/
       async function onAnswer(from, answer) {
         try {
           await localConnection.setRemoteDescription(answer);
-          console.log("Remote desc set for host");
+          console.log("Remote desc set (host side)");
         } catch (err) {
           console.error("Error setting remote desc:", err);
         }
       }
 
-      /************************************************************
-       *   ICE CANDIDATES
-       ************************************************************/
       async function onCandidate(from, candidate) {
         try {
           await localConnection.addIceCandidate(candidate);
@@ -676,7 +781,7 @@
       }
 
       /************************************************************
-       *   INCOMING MESSAGES (CHAT, TYPING, CLEAR, ETC.)
+       * 8) Incoming Chat & System Messages
        ************************************************************/
       function handleIncomingMessage(msg) {
         if (msg.type === "chat") {
@@ -708,7 +813,6 @@
           sysMsg.textContent = msg.name + " has left the chat.";
           chatArea.appendChild(sysMsg);
           chatArea.scrollTop = chatArea.scrollHeight;
-          // Disable messaging, start exit countdown
           messageInput.disabled = true;
           sendMessageButton.disabled = true;
           startExitCountdown();
@@ -716,7 +820,7 @@
       }
 
       /************************************************************
-       *                   ENCRYPTION LOGIC
+       * 9) End-to-End Encryption
        ************************************************************/
       async function deriveKey(passphrase) {
         const enc = new TextEncoder();
@@ -773,7 +877,7 @@
       }
 
       /************************************************************
-       *                   SENDING CHAT MESSAGES
+       * 10) Sending Chat Messages
        ************************************************************/
       async function sendMessage() {
         const text = messageInput.value.trim();
@@ -795,153 +899,6 @@
           }
         }
       }
-
-      function addMessage(sender, text, isSelf, time) {
-        const msgDiv = document.createElement("div");
-        msgDiv.className = "message" + (isSelf ? " self" : "");
-        const timeString = `<span class="timestamp">${time.toLocaleTimeString()}</span>`;
-        msgDiv.innerHTML = `<strong>${sender}:</strong> ${text} ${timeString}`;
-        chatArea.appendChild(msgDiv);
-        chatArea.scrollTop = chatArea.scrollHeight;
-        if (!isSelf) playNotificationSound();
-        // Self-destruct timer
-        setTimeout(() => {
-          if (chatArea.contains(msgDiv)) {
-            chatArea.removeChild(msgDiv);
-          }
-        }, selfDestructTime * 60000);
-      }
-
-      /************************************************************
-       *                   TYPING INDICATOR
-       ************************************************************/
-      function sendTyping() {
-        if (dataChannel && dataChannel.readyState === "open" && !typingSent) {
-          const msg = { type: "typing", name: userName };
-          dataChannel.send(JSON.stringify(msg));
-          typingSent = true;
-          setTimeout(() => {
-            typingSent = false;
-          }, 3000);
-        }
-      }
-      function showTypingIndicator(sender) {
-        typingIndicator.textContent = sender + " is typing...";
-        clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-          typingIndicator.textContent = "";
-        }, 3000);
-      }
-
-      /************************************************************
-       *                   CHAT UTILITIES
-       ************************************************************/
-      function playNotificationSound() {
-        const audio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAB");
-        audio.play().catch((e) => console.log("Notification sound error", e));
-      }
-      function clearChatArea() {
-        chatArea.innerHTML = "";
-      }
-
-      /************************************************************
-       *                   EXIT COUNTDOWN
-       ************************************************************/
-      function startExitCountdown() {
-        let timeLeft = 5;
-        exitCountdown.style.display = "block";
-        exitCountdown.textContent = `Returning to main page in ${timeLeft} seconds...`;
-        const intervalId = setInterval(() => {
-          timeLeft--;
-          if (timeLeft > 0) {
-            exitCountdown.textContent = `Returning to main page in ${timeLeft} seconds...`;
-          } else {
-            clearInterval(intervalId);
-            exitCountdown.style.display = "none";
-            // Reset UI
-            resetAppToInitial();
-          }
-        }, 1000);
-      }
-
-      function resetAppToInitial() {
-        // Hide chat
-        chatDiv.style.display = "none";
-        // Show signaling
-        signalingDiv.style.display = "block";
-
-        // Clear chat area + input
-        clearChatArea();
-        messageInput.value = "";
-        messageInput.disabled = false;
-        sendMessageButton.disabled = false;
-
-        // Show role selection again, etc.
-        roleSelection.style.display = "flex";
-        nameSection.style.display = "none";
-        hostSection.style.display = "none";
-        peerSection.style.display = "none";
-      }
-
-      /************************************************************
-       *                   EVENT LISTENERS
-       ************************************************************/
-      // Role selection
-      startHostButton.addEventListener("click", () => {
-        selectedRole = "host";
-        if (userName === "Anonymous") {
-          nameSection.style.display = "block";
-        } else {
-          showHostUI();
-        }
-      });
-      joinHostButton.addEventListener("click", () => {
-        selectedRole = "peer";
-        if (userName === "Anonymous") {
-          nameSection.style.display = "block";
-        } else {
-          showPeerUI();
-        }
-      });
-
-      // Name input
-      setUserNameButton.addEventListener("click", () => {
-        const name = userNameInput.value.trim();
-        if (name) {
-          userName = name;
-          nameSection.style.display = "none";
-          if (selectedRole === "host") {
-            showHostUI();
-          } else {
-            showPeerUI();
-          }
-        } else {
-          alert("Please enter a valid display name.");
-        }
-      });
-
-      function showHostUI() {
-        roleSelection.style.display = "none";
-        hostSection.style.display = "block";
-        peerSection.style.display = "none";
-      }
-      function showPeerUI() {
-        roleSelection.style.display = "none";
-        peerSection.style.display = "block";
-        hostSection.style.display = "none";
-      }
-
-      // Host calls peer
-      callPeerButton.addEventListener("click", () => {
-        peerId = peerIdInput.value.trim();
-        if (!peerId) {
-          alert("Please enter the peer's ID.");
-          return;
-        }
-        startHostCall();
-      });
-
-      // Send chat
       sendMessageButton.addEventListener("click", sendMessage);
       messageInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
@@ -952,7 +909,50 @@
         }
       });
 
-      // Clear chat
+      function addMessage(sender, text, isSelf, time) {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "message" + (isSelf ? " self" : "");
+        const timeString = `<span class="timestamp">${time.toLocaleTimeString()}</span>`;
+        msgDiv.innerHTML = `<strong>${sender}:</strong> ${text} ${timeString}`;
+        chatArea.appendChild(msgDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
+        if (!isSelf) playNotificationSound();
+        // Self-destruct
+        setTimeout(() => {
+          if (chatArea.contains(msgDiv)) {
+            chatArea.removeChild(msgDiv);
+          }
+        }, selfDestructTime * 60000);
+      }
+
+      function sendTyping() {
+        if (dataChannel && dataChannel.readyState === "open" && !typingSent) {
+          const msg = { type: "typing", name: userName };
+          dataChannel.send(JSON.stringify(msg));
+          typingSent = true;
+          setTimeout(() => {
+            typingSent = false;
+          }, 3000);
+        }
+      }
+
+      function showTypingIndicator(sender) {
+        typingIndicator.textContent = sender + " is typing...";
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+          typingIndicator.textContent = "";
+        }, 3000);
+      }
+
+      /************************************************************
+       * 11) Chat Utilities (clear, notifications, etc.)
+       ************************************************************/
+      function playNotificationSound() {
+        // Very short silent audio to avoid big downloads
+        const audio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAB");
+        audio.play().catch(() => {});
+      }
+
       clearChatButton.addEventListener("click", () => {
         collapseAllMenus();
         clearChatOptions.style.display = "flex";
@@ -975,15 +975,17 @@
       });
       cancelClearButton.addEventListener("click", resetClearChatOptions);
 
+      function clearChatArea() {
+        chatArea.innerHTML = "";
+      }
       function resetClearChatOptions() {
         clearChatOptions.style.display = "none";
         clearChatButton.style.display = "inline-block";
       }
 
-      // Emoji
       emojiToggle.addEventListener("click", () => {
         collapseAllMenus();
-        emojiMenu.style.display = (emojiMenu.style.display === "flex") ? "none" : "flex";
+        emojiMenu.style.display = emojiMenu.style.display === "flex" ? "none" : "flex";
       });
       emojiMenu.addEventListener("click", (event) => {
         if (event.target.tagName === "SPAN") {
@@ -991,7 +993,9 @@
         }
       });
 
-      // Settings & theme
+      /************************************************************
+       * 12) Settings & Theme
+       ************************************************************/
       openSettingsButton.addEventListener("click", () => {
         collapseAllMenus();
         settingsMenu.style.display = "block";
@@ -1008,7 +1012,7 @@
         } else {
           document.body.classList.remove("light-mode");
         }
-        encryptionKey = null; // Reset so we re-derive with new passphrase
+        encryptionKey = null; // re-derive on next encryption
         settingsMenu.style.display = "none";
       });
 
@@ -1018,7 +1022,41 @@
         settingsMenu.style.display = "none";
       }
 
-      // "Leave" message on page unload
+      /************************************************************
+       * 13) Exit Countdown
+       ************************************************************/
+      function startExitCountdown() {
+        let timeLeft = 5;
+        exitCountdown.style.display = "block";
+        exitCountdown.textContent = `Returning to main page in ${timeLeft} seconds...`;
+        const intervalId = setInterval(() => {
+          timeLeft--;
+          if (timeLeft > 0) {
+            exitCountdown.textContent = `Returning to main page in ${timeLeft} seconds...`;
+          } else {
+            clearInterval(intervalId);
+            exitCountdown.style.display = "none";
+            resetAppToInitial();
+          }
+        }, 1000);
+      }
+
+      function resetAppToInitial() {
+        chatDiv.style.display = "none";
+        signalingDiv.style.display = "block";
+        clearChatArea();
+        messageInput.value = "";
+        messageInput.disabled = false;
+        sendMessageButton.disabled = false;
+        roleSelection.style.display = "flex";
+        nameSection.style.display = "none";
+        hostSection.style.display = "none";
+        peerSection.style.display = "none";
+      }
+
+      /************************************************************
+       * 14) On Page Unload -> "leave" message
+       ************************************************************/
       window.addEventListener("beforeunload", () => {
         if (dataChannel && dataChannel.readyState === "open") {
           const leaveMsg = {
@@ -1031,9 +1069,11 @@
       });
 
       /************************************************************
-       *                   ON PAGE LOAD
+       * 15) On Page Load -> Start connecting...
        ************************************************************/
-      connectToSignalingServer();
+      (function init() {
+        initiateServerConnection(); // Pings + connects
+      })();
     </script>
   </body>
 </html>
