@@ -1,667 +1,987 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <meta charset="UTF-8">
-  <!-- Mobile-friendly viewport -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Atlas's P2P Communication</title>
-  <style>
-    /* --- BASE THEME --- */
-    body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      background-color: #0d0d0d;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      min-height: 100vh;
-      color: #fff;
-      overflow: hidden;
-    }
-    .container {
-      width: 95%;
-      max-width: 800px;
-      background: rgba(10, 10, 30, 0.9);
-      border: 2px solid #7b2cbf;
-      box-shadow: 0 0 15px #4361ee;
-      border-radius: 10px;
-      padding: 20px;
-      box-sizing: border-box;
-      transition: box-shadow 0.3s;
-    }
-    .container:hover {
-      box-shadow: 0 0 25px #4361ee;
-    }
-
-    /* --- LOGO & ANIMATION --- */
-    @keyframes glowPulse {
-      0%   { filter: drop-shadow(0 0 5px #4361ee); }
-      50%  { filter: drop-shadow(0 0 15px #7b2cbf); }
-      100% { filter: drop-shadow(0 0 5px #4361ee); }
-    }
-    #logo {
-      width: 150px;
-      margin-bottom: 10px;
-      animation: glowPulse 2s ease-in-out infinite;
-    }
-
-    /* --- HEADINGS & SECTIONS --- */
-    h1, h2 {
-      text-align: center;
-      color: #fff;
-      margin: 10px 0;
-    }
-    .section {
-      background: rgba(20, 20, 50, 0.8);
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      box-sizing: border-box;
-    }
-    p {
-      margin: 10px 0;
-    }
-
-    /* --- TEXTAREAS & INPUTS --- */
-    textarea, input[type="text"] {
-      width: 100%;
-      border: none;
-      border-radius: 5px;
-      padding: 10px;
-      margin-bottom: 10px;
-      box-sizing: border-box;
-      background: rgba(255, 255, 255, 0.1);
-      color: #fff;
-      font-family: inherit;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
-      transition: background 0.3s;
-    }
-    textarea:focus, input[type="text"]:focus {
-      background: rgba(255, 255, 255, 0.2);
-      outline: none;
-    }
-    textarea {
-      height: 100px;
-      resize: none;
-    }
-
-    /* --- BUTTONS --- */
-    button {
-      padding: 10px 20px;
-      border: none;
-      border-radius: 5px;
-      background-color: #7b2cbf;
-      color: #fff;
-      font-weight: bold;
-      cursor: pointer;
-      margin: 5px;
-      box-shadow: 0 0 10px #4361ee;
-      transition: background-color 0.3s, transform 0.1s;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-    button:hover {
-      background-color: #5a189a;
-    }
-    button:active {
-      transform: scale(0.98);
-    }
-
-    /* --- CHAT AREA --- */
-    #chatArea {
-      height: 300px;
-      overflow-y: auto;
-      background: rgba(20, 20, 50, 0.9);
-      padding: 10px;
-      border-radius: 5px;
-      text-align: left;
-      box-sizing: border-box;
-    }
-    .message {
-      margin: 10px 0;
-      overflow-wrap: break-word;
-      word-wrap: break-word;
-    }
-    .message.self {
-      text-align: right;
-    }
-    .timestamp {
-      font-size: 0.8em;
-      color: #ccc;
-      margin-left: 5px;
-    }
-    #typingIndicator {
-      font-style: italic;
-      color: #ccc;
-      height: 20px;
-    }
-
-    /* --- ROLE & NAME SELECTION --- */
-    #roleSelection {
-      display: flex;
-      gap: 10px;
-      justify-content: center;
-      margin-bottom: 15px;
-    }
-    #nameSection {
-      background: rgba(20, 20, 50, 0.8);
-      padding: 10px;
-      border-radius: 5px;
-      margin-bottom: 20px;
-      box-sizing: border-box;
-      display: none;
-      text-align: center;
-    }
-
-    /* --- MESSAGE CONTAINER & SEND BUTTON ALIGNMENT --- */
-    #messageContainer {
-      display: flex;
-      align-items: center;
-      margin-bottom: 10px;
-      gap: 5px;
-    }
-    #messageInput {
-      flex: 1;
-      height: 40px;
-      line-height: 40px;
-      margin: 0;
-      padding: 0 10px;
-      box-sizing: border-box;
-    }
-    #sendMessage {
-      width: 40px;
-      height: 40px;
-      font-size: 1.2em;
-      margin: 0;
-      padding: 0;
-      line-height: 40px;
-    }
-
-    /* --- EMOJI MENU --- */
-    #emojiMenu {
-      display: none;
-      flex-wrap: wrap;
-      background: rgba(20, 20, 50, 0.9);
-      border: 1px solid #7b2cbf;
-      border-radius: 5px;
-      padding: 5px;
-      max-height: 100px;
-      overflow-y: auto;
-      margin-bottom: 10px;
-    }
-    #emojiMenu span {
-      font-size: 1.5em;
-      padding: 5px;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    #emojiMenu span:hover {
-      background: rgba(123, 44, 191, 0.2);
-      border-radius: 3px;
-    }
-
-    /* --- CLEAR CHAT OPTIONS --- */
-    #clearChatOptions {
-      display: none;
-      gap: 10px;
-      margin: 5px 0;
-    }
-
-    /* --- RESPONSIVE (MOBILE) --- */
-    @media (max-width: 600px) {
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Mobile-friendly viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Atlas's P2P Communication</title>
+    <style>
+      /* --- BASE THEME (Default Dark Mode) --- */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #0d0d0d;
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        color: #fff;
+        overflow: auto;
+      }
       .container {
+        width: 95%;
+        max-width: 800px;
+        background: rgba(10, 10, 30, 0.9);
+        border: 2px solid #7b2cbf;
+        box-shadow: 0 0 15px #4361ee;
+        border-radius: 10px;
+        padding: 20px;
+        box-sizing: border-box;
+        margin: 10px;
+        transition: box-shadow 0.3s, background 0.3s;
+      }
+      .container:hover {
+        box-shadow: 0 0 25px #4361ee;
+      }
+
+      /* --- LOGO & ANIMATION --- */
+      @keyframes glowPulse {
+        0% {
+          filter: drop-shadow(0 0 5px #4361ee);
+        }
+        50% {
+          filter: drop-shadow(0 0 15px #7b2cbf);
+        }
+        100% {
+          filter: drop-shadow(0 0 5px #4361ee);
+        }
+      }
+      #logo {
+        width: 150px;
+        margin-bottom: 10px;
+        animation: glowPulse 2s ease-in-out infinite;
+      }
+
+      /* --- HEADINGS & SECTIONS --- */
+      h1,
+      h2 {
+        text-align: center;
+        margin: 10px 0;
+      }
+      .section {
+        background: rgba(20, 20, 50, 0.8);
         padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-sizing: border-box;
       }
-      #roleSelection {
-        flex-direction: column;
+      p {
+        margin: 10px 0;
       }
-      button {
+
+      /* --- TEXTAREAS & INPUTS --- */
+      textarea,
+      input[type="text"],
+      input[type="number"],
+      select {
         width: 100%;
-        margin: 5px 0;
+        border: none;
+        border-radius: 5px;
+        padding: 10px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+        background: rgba(255, 255, 255, 0.1);
+        color: inherit;
+        font-family: inherit;
+        transition: background 0.3s;
       }
+      textarea:focus,
+      input[type="text"]:focus,
+      input[type="number"]:focus,
+      select:focus {
+        background: rgba(255, 255, 255, 0.2);
+        outline: none;
+      }
+      textarea {
+        height: 100px;
+        resize: none;
+      }
+
+      /* --- BUTTONS --- */
+      button {
+        padding: 10px 20px;
+        border: none;
+        border-radius: 5px;
+        background-color: #7b2cbf;
+        color: #fff;
+        font-weight: bold;
+        cursor: pointer;
+        margin: 5px;
+        box-shadow: 0 0 10px #4361ee;
+        transition: background-color 0.3s, transform 0.1s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      button:hover {
+        background-color: #5a189a;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+
+      /* --- CHAT AREA --- */
+      #chatArea {
+        max-height: 300px;
+        overflow-y: auto;
+        background: rgba(20, 20, 50, 0.9);
+        padding: 10px;
+        border-radius: 5px;
+        text-align: left;
+        box-sizing: border-box;
+      }
+      .message {
+        margin: 10px 0;
+        word-wrap: break-word;
+      }
+      .message.self {
+        text-align: right;
+      }
+      .timestamp {
+        font-size: 0.8em;
+        color: #ccc;
+        margin-left: 5px;
+      }
+      #typingIndicator {
+        font-style: italic;
+        color: #ccc;
+        height: 20px;
+      }
+
+      /* --- ROLE & NAME SELECTION --- */
+      #roleSelection {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin-bottom: 15px;
+        flex-wrap: wrap;
+      }
+      #nameSection {
+        background: rgba(20, 20, 50, 0.8);
+        padding: 10px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+        text-align: center;
+        display: none;
+      }
+
+      /* --- MESSAGE CONTAINER --- */
       #messageContainer {
-        flex-direction: row;
+        display: flex;
+        align-items: center;
+        margin-bottom: 10px;
+        gap: 5px;
+      }
+      #messageInput {
+        flex: 1;
+        height: 40px;
+        line-height: 40px;
+        margin: 0;
+        padding: 0 10px;
+        box-sizing: border-box;
       }
       #sendMessage {
         width: 40px;
         height: 40px;
+        font-size: 1.2em;
+        margin: 0;
+        padding: 0;
+        line-height: 40px;
       }
-    }
-  </style>
-</head>
-<body>
-  <div class="container">
-    <!-- Replace with your actual logo path/URL -->
-    <div style="text-align:center;">
-      <img id="logo" src="image.webp" alt="Atlas's P2P Communication Logo">
+
+      /* --- EMOJI MENU --- */
+      #emojiMenu {
+        display: none;
+        flex-wrap: wrap;
+        background: rgba(20, 20, 50, 0.9);
+        border: 1px solid #7b2cbf;
+        border-radius: 5px;
+        padding: 5px;
+        max-height: 100px;
+        overflow-y: auto;
+        margin-bottom: 10px;
+      }
+      #emojiMenu span {
+        font-size: 1.5em;
+        padding: 5px;
+        cursor: pointer;
+        transition: background 0.2s;
+      }
+      #emojiMenu span:hover {
+        background: rgba(123, 44, 191, 0.2);
+        border-radius: 3px;
+      }
+
+      /* --- CLEAR CHAT OPTIONS --- */
+      #clearChatOptions {
+        display: none;
+        gap: 10px;
+        margin: 5px 0;
+      }
+
+      /* --- SETTINGS MENU --- */
+      #settingsMenu {
+        background: rgba(20, 20, 50, 0.9);
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        box-sizing: border-box;
+        display: none;
+      }
+
+      /* --- EXIT COUNTDOWN --- */
+      #exitCountdown {
+        display: none;
+        text-align: center;
+        font-size: 1.2em;
+        margin-top: 10px;
+      }
+
+      /* --- CONNECTION STATUS --- */
+      #connectionStatus {
+        text-align: center;
+        margin-bottom: 10px;
+        font-weight: bold;
+      }
+
+      /* --- LIGHT MODE TEXT COLOR OVERRIDES --- */
+      body.light-mode {
+        background-color: #f0f0f0;
+        color: #000;
+      }
+
+      body.light-mode .container {
+        background: rgba(245, 245, 245, 0.9);
+        box-shadow: 0 0 15px #999;
+        color: #000;
+      }
+
+      body.light-mode .section {
+        background: rgba(230, 230, 230, 0.8);
+        color: #000;
+      }
+
+      body.light-mode textarea,
+      body.light-mode input[type="text"],
+      body.light-mode input[type="number"],
+      body.light-mode select {
+        background: rgba(255, 255, 255, 0.8);
+        color: #000;
+      }
+
+      body.light-mode button {
+        background-color: #7b2cbf;
+        color: #fff;
+      }
+
+      body.light-mode #emojiMenu {
+        background: rgba(230, 230, 230, 0.9);
+        color: #000;
+      }
+
+      body.light-mode #chatArea {
+        background: #fff;
+        color: #000;
+      }
+
+      body.light-mode #typingIndicator {
+        color: #333;
+      }
+
+      body.light-mode .message {
+        color: #000;
+      }
+
+      body.light-mode .message.self {
+        color: #000;
+      }
+
+      body.light-mode .timestamp {
+        color: #666;
+      }
+
+      body.light-mode #connectionStatus {
+        color: #000;
+      }
+      /* --- RESPONSIVE (MOBILE) --- */
+      @media (max-width: 600px) {
+        .container {
+          padding: 15px;
+        }
+        #roleSelection {
+          flex-direction: column;
+        }
+        button {
+          width: 100%;
+          margin: 5px 0;
+        }
+        #messageContainer {
+          flex-direction: row;
+        }
+        #sendMessage {
+          width: 40px;
+          height: 40px;
+        }
+        #chatArea {
+          max-height: 200px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <!-- Logo -->
+      <div style="text-align: center">
+        <img id="logo" src="image.webp" alt="Atlas's P2P Communication Logo" />
+      </div>
+      <h1>Atlas's P2P Communication</h1>
+
+      <!-- Signaling Section -->
+      <div id="signaling" class="section">
+        <!-- Role Selection -->
+        <div id="roleSelection">
+          <button id="startHost">Start as Host</button>
+          <button id="joinHost">Join as Peer</button>
+        </div>
+
+        <!-- Display Name Input Section -->
+        <div id="nameSection">
+          <input
+            type="text"
+            id="userNameInput"
+            placeholder="Enter Your Display Name"
+          />
+          <button id="setUserName">Set Name</button>
+        </div>
+
+        <!-- Host UI: Create and share offer -->
+        <div id="hostSection" style="display: none">
+          <p>
+            <strong>Step 1:</strong> Copy this offer and send it to your peer:
+          </p>
+          <textarea id="offer" readonly></textarea>
+          <p><strong>Step 2:</strong> Paste the answer from your peer:</p>
+          <textarea
+            id="answerInput"
+            placeholder="Paste answer here..."
+          ></textarea>
+          <button id="setAnswer">Set Answer</button>
+        </div>
+
+        <!-- Peer UI: Paste offer and create answer -->
+        <div id="peerSection" style="display: none">
+          <p><strong>Step 1:</strong> Paste the offer from the host:</p>
+          <textarea
+            id="offerInput"
+            placeholder="Paste offer here..."
+          ></textarea>
+          <button id="createAnswer">Create Answer</button>
+          <p>
+            <strong>Step 2:</strong> Copy this answer and send it to the host:
+          </p>
+          <textarea id="answer" readonly></textarea>
+        </div>
+      </div>
+
+      <!-- Chat Section -->
+      <div id="chat" class="section" style="display: none">
+        <!-- Chat Header & Connection Status -->
+        <h2 id="chatHeader">Chat</h2>
+        <div id="connectionStatus">Status: Connecting...</div>
+        <div id="chatArea"></div>
+        <div id="typingIndicator"></div>
+
+        <!-- Message Input Area -->
+        <div id="messageContainer">
+          <input
+            type="text"
+            id="messageInput"
+            placeholder="Type your message here..."
+          />
+          <button id="sendMessage">➤</button>
+        </div>
+
+        <!-- Controls: Emoji, Settings, Clear Chat -->
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+          "
+        >
+          <button id="emojiToggle">Emoji</button>
+          <button id="openSettings">Settings</button>
+          <button id="clearChat">Clear Chat</button>
+        </div>
+
+        <!-- Emoji Menu -->
+        <div id="emojiMenu">
+          <span>😀</span>
+          <span>😂</span>
+          <span>😍</span>
+          <span>😢</span>
+          <span>😡</span>
+          <span>👍</span>
+          <span>👎</span>
+          <span>🙏</span>
+          <span>🎉</span>
+          <span>🤔</span>
+        </div>
+
+        <!-- Clear Chat Options -->
+        <div id="clearChatOptions">
+          <button id="clearForMe">Clear for Me</button>
+          <button id="clearForEveryone">Clear for Everyone</button>
+          <button id="cancelClear">Cancel</button>
+        </div>
+
+        <!-- Exit Countdown Display -->
+        <div id="exitCountdown"></div>
+      </div>
+
+      <!-- Settings Menu -->
+      <div id="settingsMenu" class="section">
+        <h2>Settings</h2>
+        <label>Encryption Passphrase:</label>
+        <input
+          type="text"
+          id="encryptionPassphraseInput"
+          placeholder="Enter passphrase"
+          value="default"
+        />
+        <label>Self-Destruct Timer (minutes):</label>
+        <input type="number" id="selfDestructTimerInput" value="10" min="1" />
+        <label>Theme:</label>
+        <select id="themeSelect">
+          <option value="default">Default (Dark Mode)</option>
+          <option value="light">Light Mode</option>
+        </select>
+        <button id="saveSettings">Save Settings</button>
+        <button id="closeSettings">Close</button>
+      </div>
     </div>
-    <h1>Atlas's P2P Communication</h1>
-    
-    <!-- Signaling Section -->
-    <div id="signaling" class="section">
-      <!-- Role Selection -->
-      <div id="roleSelection">
-        <button id="startHost">Start as Host</button>
-        <button id="joinHost">Join as Peer</button>
-      </div>
 
-      <!-- Display Name Input Section -->
-      <div id="nameSection">
-        <input type="text" id="userNameInput" placeholder="Enter Your Display Name">
-        <button id="setUserName">Set Name</button>
-      </div>
+    <script>
+      // Public STUN server configuration for NAT traversal
+      const configuration = {
+        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
+      };
+      let localConnection, dataChannel;
+      let userName = "Anonymous";
+      let typingTimeout;
+      let typingSent = false;
+      let selectedRole = null; // "host" or "peer"
+      let selfDestructTime = 10; // in minutes
+      let encryptionPassphrase = "default";
+      let encryptionKey = null;
 
-      <!-- Host UI: Create and share offer -->
-      <div id="hostSection" style="display:none;">
-        <p><strong>Step 1:</strong> Copy this offer and send it to your peer:</p>
-        <textarea id="offer" readonly></textarea>
-        <p><strong>Step 2:</strong> Paste the answer from your peer:</p>
-        <textarea id="answerInput" placeholder="Paste answer here..."></textarea>
-        <button id="setAnswer">Set Answer</button>
-      </div>
+      // DOM Elements
+      const roleSelection = document.getElementById("roleSelection");
+      const startHostButton = document.getElementById("startHost");
+      const joinHostButton = document.getElementById("joinHost");
+      const nameSection = document.getElementById("nameSection");
+      const userNameInput = document.getElementById("userNameInput");
+      const setUserNameButton = document.getElementById("setUserName");
+      const hostSection = document.getElementById("hostSection");
+      const peerSection = document.getElementById("peerSection");
+      const offerTextarea = document.getElementById("offer");
+      const answerInput = document.getElementById("answerInput");
+      const setAnswerButton = document.getElementById("setAnswer");
+      const offerInput = document.getElementById("offerInput");
+      const createAnswerButton = document.getElementById("createAnswer");
+      const answerTextarea = document.getElementById("answer");
+      const chatDiv = document.getElementById("chat");
+      const chatArea = document.getElementById("chatArea");
+      const chatHeader = document.getElementById("chatHeader");
+      const messageInput = document.getElementById("messageInput");
+      const sendMessageButton = document.getElementById("sendMessage");
+      const clearChatButton = document.getElementById("clearChat");
+      const clearChatOptions = document.getElementById("clearChatOptions");
+      const clearForMeButton = document.getElementById("clearForMe");
+      const clearForEveryoneButton =
+        document.getElementById("clearForEveryone");
+      const cancelClearButton = document.getElementById("cancelClear");
+      const typingIndicator = document.getElementById("typingIndicator");
+      const emojiToggle = document.getElementById("emojiToggle");
+      const emojiMenu = document.getElementById("emojiMenu");
+      const openSettingsButton = document.getElementById("openSettings");
+      const settingsMenu = document.getElementById("settingsMenu");
+      const encryptionPassphraseInput = document.getElementById(
+        "encryptionPassphraseInput"
+      );
+      const selfDestructTimerInput = document.getElementById(
+        "selfDestructTimerInput"
+      );
+      const saveSettingsButton = document.getElementById("saveSettings");
+      const closeSettingsButton = document.getElementById("closeSettings");
+      const connectionStatus = document.getElementById("connectionStatus");
+      const exitCountdown = document.getElementById("exitCountdown");
 
-      <!-- Peer UI: Paste offer and create answer -->
-      <div id="peerSection" style="display:none;">
-        <p><strong>Step 1:</strong> Paste the offer from the host:</p>
-        <textarea id="offerInput" placeholder="Paste offer here..."></textarea>
-        <button id="createAnswer">Create Answer</button>
-        <p><strong>Step 2:</strong> Copy this answer and send it to the host:</p>
-        <textarea id="answer" readonly></textarea>
-      </div>
-    </div>
-    
-    <!-- Chat Section -->
-    <div id="chat" class="section" style="display:none;">
-      <!-- Dynamic Chat Header -->
-      <h2 id="chatHeader">Chat</h2>
-      <div id="chatArea"></div>
-      <div id="typingIndicator"></div>
-      
-      <!-- Message container with input and a little send button -->
-      <div id="messageContainer">
-        <input type="text" id="messageInput" placeholder="Type your message here...">
-        <button id="sendMessage">➤</button>
-      </div>
-      
-      <!-- Emoji Menu -->
-      <div id="emojiMenu">
-        <span>😀</span>
-        <span>😂</span>
-        <span>😍</span>
-        <span>😢</span>
-        <span>😡</span>
-        <span>👍</span>
-        <span>👎</span>
-        <span>🙏</span>
-        <span>🎉</span>
-        <span>🤔</span>
-      </div>
-      
-      <!-- Controls row for Emoji toggle and Clear Chat -->
-      <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px;">
-        <button id="emojiToggle">Emoji</button>
-        <button id="clearChat">Clear Chat</button>
-      </div>
+      /* ------------------------
+       END-TO-END ENCRYPTION FUNCTIONS
+    ------------------------ */
+      async function deriveKey(passphrase) {
+        const enc = new TextEncoder();
+        const keyMaterial = await window.crypto.subtle.importKey(
+          "raw",
+          enc.encode(passphrase),
+          { name: "PBKDF2" },
+          false,
+          ["deriveKey"]
+        );
+        return window.crypto.subtle.deriveKey(
+          {
+            name: "PBKDF2",
+            salt: enc.encode("fixedSalt"), // In production, use a proper salt exchange mechanism
+            iterations: 100000,
+            hash: "SHA-256",
+          },
+          keyMaterial,
+          { name: "AES-GCM", length: 256 },
+          false,
+          ["encrypt", "decrypt"]
+        );
+      }
 
-      <!-- Clear Chat Options -->
-      <div id="clearChatOptions">
-        <button id="clearForMe">Clear for Me</button>
-        <button id="clearForEveryone">Clear for Everyone</button>
-        <button id="cancelClear">Cancel</button>
-      </div>
-    </div>
-  </div>
+      async function encryptMessage(plaintext) {
+        if (!encryptionKey) {
+          encryptionKey = await deriveKey(encryptionPassphrase);
+        }
+        const enc = new TextEncoder();
+        const iv = window.crypto.getRandomValues(new Uint8Array(12));
+        const encrypted = await window.crypto.subtle.encrypt(
+          { name: "AES-GCM", iv: iv },
+          encryptionKey,
+          enc.encode(plaintext)
+        );
+        return {
+          iv: Array.from(iv),
+          ciphertext: Array.from(new Uint8Array(encrypted)),
+        };
+      }
 
-  <script>
-    // Public STUN server configuration for NAT traversal
-    const configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
-    let localConnection, dataChannel;
-    let userName = "Anonymous";
-    let typingTimeout;
-    let typingSent = false;
-    let selectedRole = null; // "host" or "peer"
+      async function decryptMessage(encryptedObj) {
+        if (!encryptionKey) {
+          encryptionKey = await deriveKey(encryptionPassphrase);
+        }
+        const { iv, ciphertext } = encryptedObj;
+        const dec = new TextDecoder();
+        const decrypted = await window.crypto.subtle.decrypt(
+          { name: "AES-GCM", iv: new Uint8Array(iv) },
+          encryptionKey,
+          new Uint8Array(ciphertext)
+        );
+        return dec.decode(decrypted);
+      }
 
-    // DOM Elements
-    const roleSelection = document.getElementById('roleSelection');
-    const startHostButton = document.getElementById('startHost');
-    const joinHostButton = document.getElementById('joinHost');
-    const nameSection = document.getElementById('nameSection');
-    const userNameInput = document.getElementById('userNameInput');
-    const setUserNameButton = document.getElementById('setUserName');
-    const hostSection = document.getElementById('hostSection');
-    const peerSection = document.getElementById('peerSection');
-    const offerTextarea = document.getElementById('offer');
-    const answerInput = document.getElementById('answerInput');
-    const setAnswerButton = document.getElementById('setAnswer');
-    const offerInput = document.getElementById('offerInput');
-    const createAnswerButton = document.getElementById('createAnswer');
-    const answerTextarea = document.getElementById('answer');
-    const chatDiv = document.getElementById('chat');
-    const chatArea = document.getElementById('chatArea');
-    const chatHeader = document.getElementById('chatHeader');
-    const messageInput = document.getElementById('messageInput');
-    const sendMessageButton = document.getElementById('sendMessage');
-    const clearChatButton = document.getElementById('clearChat');
-    const clearChatOptions = document.getElementById('clearChatOptions');
-    const clearForMeButton = document.getElementById('clearForMe');
-    const clearForEveryoneButton = document.getElementById('clearForEveryone');
-    const cancelClearButton = document.getElementById('cancelClear');
-    const typingIndicator = document.getElementById('typingIndicator');
-    const emojiToggle = document.getElementById('emojiToggle');
-    const emojiMenu = document.getElementById('emojiMenu');
+      /* ------------------------
+       CONNECTION & ICE LISTENER
+    ------------------------ */
+      function addConnectionStateListener() {
+        localConnection.oniceconnectionstatechange = () => {
+          connectionStatus.textContent =
+            "Status: " + localConnection.iceConnectionState;
+          if (
+            localConnection.iceConnectionState === "disconnected" ||
+            localConnection.iceConnectionState === "failed"
+          ) {
+            console.log("Attempting to restart ICE...");
+            localConnection.restartIce();
+          }
+        };
+      }
 
-    /* ------------------------
+      /* ------------------------
        ROLE SELECTION & NAME SETUP
     ------------------------ */
-    function startHostProcess() {
-      localConnection = new RTCPeerConnection(configuration);
-      dataChannel = localConnection.createDataChannel("chat");
-      setupDataChannel();
-      localConnection.onicecandidate = event => {
-        if (event.candidate === null) {
-          // Wrap the offer with hostName
-          const offerObj = {
-            sdp: localConnection.localDescription.sdp,
-            type: localConnection.localDescription.type,
-            hostName: userName
-          };
-          offerTextarea.value = JSON.stringify(offerObj);
-        }
-      };
-      localConnection.createOffer()
-        .then(offer => localConnection.setLocalDescription(offer))
-        .then(() => {
-          hostSection.style.display = 'block';
-          roleSelection.style.display = 'none';
-          nameSection.style.display = 'none';
-        })
-        .catch(err => console.error(err));
-    }
-
-    function showPeerProcess() {
-      peerSection.style.display = 'block';
-      roleSelection.style.display = 'none';
-      nameSection.style.display = 'none';
-    }
-
-    startHostButton.addEventListener('click', () => {
-      selectedRole = "host";
-      if (userName === "Anonymous") {
-        nameSection.style.display = 'block';
-      } else {
-        startHostProcess();
-      }
-    });
-
-    joinHostButton.addEventListener('click', () => {
-      selectedRole = "peer";
-      if (userName === "Anonymous") {
-        nameSection.style.display = 'block';
-      } else {
-        showPeerProcess();
-      }
-    });
-
-    setUserNameButton.addEventListener('click', () => {
-      const name = userNameInput.value.trim();
-      if (name) {
-        userName = name;
-        nameSection.style.display = 'none';
-        if (selectedRole === "host") {
-          startHostProcess();
-        } else if (selectedRole === "peer") {
-          showPeerProcess();
-        }
-      } else {
-        alert("Please enter a valid display name.");
-      }
-    });
-
-    /* ------------------------
-       SIGNALING - Host & Peer
-    ------------------------ */
-    setAnswerButton.addEventListener('click', async () => {
-      try {
-        const answer = JSON.parse(answerInput.value);
-        await localConnection.setRemoteDescription(answer);
-        // On host side, update chat header if peerName is provided
-        if (answer.peerName) {
-          chatHeader.textContent = "Chat with " + answer.peerName;
-        }
-      } catch (e) {
-        alert("Invalid answer. Please check the input.");
-      }
-    });
-
-    createAnswerButton.addEventListener('click', async () => {
-      try {
-        const offer = JSON.parse(offerInput.value);
-        // On peer side, update chat header with host's username (defaulting to "Host")
-        if (offer.hostName) {
-          chatHeader.textContent = "Chat with " + offer.hostName;
-        } else {
-          chatHeader.textContent = "Chat with Host";
-        }
+      function startHostProcess() {
         localConnection = new RTCPeerConnection(configuration);
-        localConnection.ondatachannel = event => {
-          dataChannel = event.channel;
-          setupDataChannel();
-        };
-        await localConnection.setRemoteDescription(offer);
-        const answer = await localConnection.createAnswer();
-        // Add peerName to the answer
-        answer.peerName = userName;
-        await localConnection.setLocalDescription(answer);
-        localConnection.onicecandidate = event => {
+        addConnectionStateListener();
+        dataChannel = localConnection.createDataChannel("chat");
+        setupDataChannel();
+        localConnection.onicecandidate = (event) => {
           if (event.candidate === null) {
-            answerTextarea.value = JSON.stringify(localConnection.localDescription);
-            // Also store answer in localStorage to trigger storage event on host side
-            const answerObj = {
+            const offerObj = {
               sdp: localConnection.localDescription.sdp,
               type: localConnection.localDescription.type,
-              peerName: userName
+              hostName: userName,
             };
-            localStorage.setItem("peerAnswer", JSON.stringify(answerObj));
+            offerTextarea.value = JSON.stringify(offerObj);
           }
         };
-      } catch (e) {
-        alert("Invalid offer. Please check the input.");
+        localConnection
+          .createOffer()
+          .then((offer) => localConnection.setLocalDescription(offer))
+          .then(() => {
+            hostSection.style.display = "block";
+            roleSelection.style.display = "none";
+            nameSection.style.display = "none";
+          })
+          .catch((err) => console.error(err));
       }
-    });
 
-    /* ------------------------
-       Listen for localStorage events (Host side receiving answer)
+      function showPeerProcess() {
+        peerSection.style.display = "block";
+        roleSelection.style.display = "none";
+        nameSection.style.display = "none";
+      }
+
+      startHostButton.addEventListener("click", () => {
+        selectedRole = "host";
+        if (userName === "Anonymous") {
+          nameSection.style.display = "block";
+        } else {
+          startHostProcess();
+        }
+      });
+
+      joinHostButton.addEventListener("click", () => {
+        selectedRole = "peer";
+        if (userName === "Anonymous") {
+          nameSection.style.display = "block";
+        } else {
+          showPeerProcess();
+        }
+      });
+
+      setUserNameButton.addEventListener("click", () => {
+        const name = userNameInput.value.trim();
+        if (name) {
+          userName = name;
+          nameSection.style.display = "none";
+          if (selectedRole === "host") {
+            startHostProcess();
+          } else if (selectedRole === "peer") {
+            showPeerProcess();
+          }
+        } else {
+          alert("Please enter a valid display name.");
+        }
+      });
+
+      /* ------------------------
+       SIGNALING - Host & Peer
     ------------------------ */
-    window.addEventListener('storage', (event) => {
-      if (event.key === 'peerAnswer') {
+      setAnswerButton.addEventListener("click", async () => {
         try {
-          const answerData = JSON.parse(event.newValue);
-          if (answerData.peerName) {
-            chatHeader.textContent = "Chat with " + answerData.peerName;
+          const answer = JSON.parse(answerInput.value);
+          await localConnection.setRemoteDescription(answer);
+          if (answer.peerName) {
+            chatHeader.textContent = "Chat with " + answer.peerName;
           }
         } catch (e) {
-          console.error("Error parsing answer data from localStorage", e);
+          alert("Invalid answer. Please check the input.");
         }
-      }
-    });
+      });
 
-    /* ------------------------
+      createAnswerButton.addEventListener("click", async () => {
+        try {
+          const offer = JSON.parse(offerInput.value);
+          chatHeader.textContent = offer.hostName
+            ? "Chat with " + offer.hostName
+            : "Chat with Host";
+          localConnection = new RTCPeerConnection(configuration);
+          addConnectionStateListener();
+          localConnection.ondatachannel = (event) => {
+            dataChannel = event.channel;
+            setupDataChannel();
+          };
+          await localConnection.setRemoteDescription(offer);
+          const answer = await localConnection.createAnswer();
+          answer.peerName = userName;
+          await localConnection.setLocalDescription(answer);
+          localConnection.onicecandidate = (event) => {
+            if (event.candidate === null) {
+              answerTextarea.value = JSON.stringify(
+                localConnection.localDescription
+              );
+              const answerObj = {
+                sdp: localConnection.localDescription.sdp,
+                type: localConnection.localDescription.type,
+                peerName: userName,
+              };
+              localStorage.setItem("peerAnswer", JSON.stringify(answerObj));
+            }
+          };
+        } catch (e) {
+          alert("Invalid offer. Please check the input.");
+        }
+      });
+
+      window.addEventListener("storage", (event) => {
+        if (event.key === "peerAnswer") {
+          try {
+            const answerData = JSON.parse(event.newValue);
+            if (answerData.peerName) {
+              chatHeader.textContent = "Chat with " + answerData.peerName;
+            }
+          } catch (e) {
+            console.error("Error parsing answer data from localStorage", e);
+          }
+        }
+      });
+
+      /* ------------------------
        DATA CHANNEL SETUP
     ------------------------ */
-    function setupDataChannel() {
-      dataChannel.onopen = () => {
-        console.log("Data channel open");
-        document.getElementById('signaling').style.display = 'none';
-        chatDiv.style.display = 'block';
-      };
-      dataChannel.onmessage = event => {
-        try {
-          const msg = JSON.parse(event.data);
-          handleIncomingMessage(msg);
-        } catch (e) {
-          addMessage("Peer", event.data, false, new Date());
-        }
-      };
-    }
+      function setupDataChannel() {
+        dataChannel.onopen = () => {
+          console.log("Data channel open");
+          document.getElementById("signaling").style.display = "none";
+          chatDiv.style.display = "block";
+        };
+        dataChannel.onmessage = (event) => {
+          try {
+            const msg = JSON.parse(event.data);
+            handleIncomingMessage(msg);
+          } catch (e) {
+            addMessage("Peer", event.data, false, new Date());
+          }
+        };
+      }
 
-    /* ------------------------
+      /* ------------------------
        HANDLE INCOMING MESSAGES
     ------------------------ */
-    function handleIncomingMessage(msg) {
-      if (msg.type === "chat") {
-        addMessage(msg.name, msg.text, false, new Date(msg.time));
-      } else if (msg.type === "typing") {
-        showTypingIndicator(msg.name);
-      } else if (msg.type === "clearEveryone") {
-        clearChatArea();
-        // Display a system message indicating who cleared the chat
-        const sysMsg = document.createElement('div');
-        sysMsg.className = 'message';
-        sysMsg.style.fontStyle = "italic";
-        sysMsg.textContent = "Chat was cleared by " + msg.name;
-        chatArea.appendChild(sysMsg);
-        chatArea.scrollTop = chatArea.scrollHeight;
-      } else if (msg.type === "leave") {
-        // Add a system message when a user leaves
-        const sysMsg = document.createElement('div');
-        sysMsg.className = 'message';
-        sysMsg.style.fontStyle = "italic";
-        sysMsg.textContent = msg.name + " has left the chat.";
-        chatArea.appendChild(sysMsg);
-        chatArea.scrollTop = chatArea.scrollHeight;
-        // Optionally disable chat input
-        messageInput.disabled = true;
+      function handleIncomingMessage(msg) {
+        if (msg.type === "chat") {
+          if (msg.encrypted) {
+            decryptMessage(msg.data)
+              .then((plainText) => {
+                addMessage(msg.name, plainText, false, new Date(msg.time));
+              })
+              .catch((err) => {
+                addMessage(
+                  msg.name,
+                  "[Decryption error]",
+                  false,
+                  new Date(msg.time)
+                );
+              });
+          } else {
+            addMessage(msg.name, msg.text, false, new Date(msg.time));
+          }
+        } else if (msg.type === "typing") {
+          showTypingIndicator(msg.name);
+        } else if (msg.type === "clearEveryone") {
+          clearChatArea();
+          const sysMsg = document.createElement("div");
+          sysMsg.className = "message";
+          sysMsg.style.fontStyle = "italic";
+          sysMsg.textContent = "Chat was cleared by " + msg.name;
+          chatArea.appendChild(sysMsg);
+          chatArea.scrollTop = chatArea.scrollHeight;
+        } else if (msg.type === "leave") {
+          const sysMsg = document.createElement("div");
+          sysMsg.className = "message";
+          sysMsg.style.fontStyle = "italic";
+          sysMsg.textContent = msg.name + " has left the chat.";
+          chatArea.appendChild(sysMsg);
+          chatArea.scrollTop = chatArea.scrollHeight;
+          // Disable messaging and start exit countdown
+          messageInput.disabled = true;
+          sendMessageButton.disabled = true;
+          startExitCountdown();
+        }
       }
-    }
 
-    /* ------------------------
-       ADD MESSAGES TO CHAT
+      /* ------------------------
+       ADD MESSAGES TO CHAT (with self-destruct)
     ------------------------ */
-    function addMessage(sender, text, isSelf, time) {
-      const msgDiv = document.createElement('div');
-      msgDiv.className = 'message' + (isSelf ? ' self' : '');
-      const timeString = `<span class="timestamp">${time.toLocaleTimeString()}</span>`;
-      msgDiv.innerHTML = `<strong>${sender}:</strong> ${text} ${timeString}`;
-      chatArea.appendChild(msgDiv);
-      chatArea.scrollTop = chatArea.scrollHeight;
-      if (!isSelf) playNotificationSound();
-    }
-
-    /* ------------------------
-       SEND CHAT MESSAGE
-    ------------------------ */
-    function sendMessage() {
-      const text = messageInput.value.trim();
-      if (text && dataChannel && dataChannel.readyState === "open") {
-        const msg = {
-          type: "chat",
-          name: userName,
-          text: text,
-          time: new Date().toISOString()
-        };
-        dataChannel.send(JSON.stringify(msg));
-        addMessage(userName, text, true, new Date());
-        messageInput.value = '';
+      function addMessage(sender, text, isSelf, time) {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "message" + (isSelf ? " self" : "");
+        const timeString = `<span class="timestamp">${time.toLocaleTimeString()}</span>`;
+        msgDiv.innerHTML = `<strong>${sender}:</strong> ${text} ${timeString}`;
+        chatArea.appendChild(msgDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
+        if (!isSelf) playNotificationSound();
+        // Self-destruct timer
+        setTimeout(() => {
+          if (chatArea.contains(msgDiv)) {
+            chatArea.removeChild(msgDiv);
+          }
+        }, selfDestructTime * 60000);
       }
-    }
 
-    /* ------------------------
+      /* ------------------------
+       SEND CHAT MESSAGE (with encryption)
+    ------------------------ */
+      async function sendMessage() {
+        const text = messageInput.value.trim();
+        if (text && dataChannel && dataChannel.readyState === "open") {
+          try {
+            const encryptedData = await encryptMessage(text);
+            const msg = {
+              type: "chat",
+              name: userName,
+              encrypted: true,
+              data: encryptedData,
+              time: new Date().toISOString(),
+            };
+            dataChannel.send(JSON.stringify(msg));
+            addMessage(userName, text, true, new Date());
+            messageInput.value = "";
+          } catch (err) {
+            console.error("Encryption error:", err);
+          }
+        }
+      }
+
+      /* ------------------------
        TYPING INDICATOR
     ------------------------ */
-    function sendTyping() {
-      if (dataChannel && dataChannel.readyState === "open" && !typingSent) {
-        const msg = { type: "typing", name: userName };
-        dataChannel.send(JSON.stringify(msg));
-        typingSent = true;
-        setTimeout(() => { typingSent = false; }, 3000);
+      function sendTyping() {
+        if (dataChannel && dataChannel.readyState === "open" && !typingSent) {
+          const msg = { type: "typing", name: userName };
+          dataChannel.send(JSON.stringify(msg));
+          typingSent = true;
+          setTimeout(() => {
+            typingSent = false;
+          }, 3000);
+        }
       }
-    }
-    function showTypingIndicator(sender) {
-      typingIndicator.textContent = sender + " is typing...";
-      clearTimeout(typingTimeout);
-      typingTimeout = setTimeout(() => { typingIndicator.textContent = ""; }, 3000);
-    }
+      function showTypingIndicator(sender) {
+        typingIndicator.textContent = sender + " is typing...";
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(() => {
+          typingIndicator.textContent = "";
+        }, 3000);
+      }
 
-    /* ------------------------
+      /* ------------------------
        NOTIFICATION SOUND
     ------------------------ */
-    function playNotificationSound() {
-      const audio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAB");
-      audio.play().catch(e => console.log("Notification sound error", e));
-    }
+      function playNotificationSound() {
+        const audio = new Audio(
+          "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAB"
+        );
+        audio.play().catch((e) => console.log("Notification sound error", e));
+      }
 
-    /* ------------------------
+      /* ------------------------
        CLEAR CHAT FUNCTIONS
     ------------------------ */
-    function clearChatArea() {
-      chatArea.innerHTML = '';
-    }
-    clearChatButton.addEventListener('click', () => {
-      clearChatButton.style.display = 'none';
-      clearChatOptions.style.display = 'flex';
-    });
-    clearForMeButton.addEventListener('click', () => {
-      clearChatArea();
-      resetClearChatOptions();
-    });
-    clearForEveryoneButton.addEventListener('click', () => {
-      if (dataChannel && dataChannel.readyState === "open") {
-        const msg = {
-          type: "clearEveryone",
-          name: userName,
-          time: new Date().toISOString()
-        };
-        dataChannel.send(JSON.stringify(msg));
+      function clearChatArea() {
+        chatArea.innerHTML = "";
       }
-      clearChatArea();
-      resetClearChatOptions();
-    });
-    cancelClearButton.addEventListener('click', () => {
-      resetClearChatOptions();
-    });
-    function resetClearChatOptions() {
-      clearChatOptions.style.display = 'none';
-      clearChatButton.style.display = 'inline-block';
-    }
+      clearChatButton.addEventListener("click", () => {
+        clearChatButton.style.display = "none";
+        clearChatOptions.style.display = "flex";
+      });
+      clearForMeButton.addEventListener("click", () => {
+        clearChatArea();
+        resetClearChatOptions();
+      });
+      clearForEveryoneButton.addEventListener("click", () => {
+        if (dataChannel && dataChannel.readyState === "open") {
+          const msg = {
+            type: "clearEveryone",
+            name: userName,
+            time: new Date().toISOString(),
+          };
+          dataChannel.send(JSON.stringify(msg));
+        }
+        clearChatArea();
+        resetClearChatOptions();
+      });
+      cancelClearButton.addEventListener("click", () => {
+        resetClearChatOptions();
+      });
+      function resetClearChatOptions() {
+        clearChatOptions.style.display = "none";
+        clearChatButton.style.display = "inline-block";
+      }
 
-    /* ------------------------
+      /* ------------------------
        EMOJI MENU FUNCTIONALITY
     ------------------------ */
-    emojiToggle.addEventListener('click', () => {
-      emojiMenu.style.display = (emojiMenu.style.display === 'flex') ? 'none' : 'flex';
-    });
-    emojiMenu.addEventListener('click', (event) => {
-      if (event.target.tagName === 'SPAN') {
-        messageInput.value += event.target.textContent;
-      }
-    });
+      emojiToggle.addEventListener("click", () => {
+        emojiMenu.style.display =
+          emojiMenu.style.display === "flex" ? "none" : "flex";
+      });
+      emojiMenu.addEventListener("click", (event) => {
+        if (event.target.tagName === "SPAN") {
+          messageInput.value += event.target.textContent;
+        }
+      });
 
-    /* ------------------------
+      /* ------------------------
+       SETTINGS MENU FUNCTIONALITY & THEME SWITCHING
+    ------------------------ */
+      openSettingsButton.addEventListener("click", () => {
+        settingsMenu.style.display = "block";
+      });
+      closeSettingsButton.addEventListener("click", () => {
+        settingsMenu.style.display = "none";
+      });
+      saveSettingsButton.addEventListener("click", async () => {
+        encryptionPassphrase =
+          encryptionPassphraseInput.value.trim() || "default";
+        selfDestructTime = parseInt(selfDestructTimerInput.value) || 10;
+        // Apply theme without alerts
+        const theme = document.getElementById("themeSelect").value;
+        if (theme === "light") {
+          document.body.classList.add("light-mode");
+        } else {
+          document.body.classList.remove("light-mode");
+        }
+        encryptionKey = null; // Reset key so it re-derives with the new passphrase
+        settingsMenu.style.display = "none";
+      });
+
+      /* ------------------------
+       EXIT COUNTDOWN FUNCTIONALITY
+    ------------------------ */
+      function startExitCountdown() {
+        let timeLeft = 5;
+        exitCountdown.style.display = "block";
+        exitCountdown.textContent = `Returning to main page in ${timeLeft} seconds...`;
+        const intervalId = setInterval(() => {
+          timeLeft--;
+          if (timeLeft > 0) {
+            exitCountdown.textContent = `Returning to main page in ${timeLeft} seconds...`;
+          } else {
+            clearInterval(intervalId);
+            exitCountdown.style.display = "none";
+            // Return to main/signaling page
+            chatDiv.style.display = "none";
+            document.getElementById("signaling").style.display = "block";
+            // Reset chat area and re-enable input
+            chatArea.innerHTML = "";
+            messageInput.value = "";
+            messageInput.disabled = false;
+            sendMessageButton.disabled = false;
+          }
+        }, 1000);
+      }
+
+      /* ------------------------
        EVENT LISTENERS
     ------------------------ */
-    sendMessageButton.addEventListener('click', sendMessage);
-    messageInput.addEventListener('keydown', (event) => {
-      if (event.key === "Enter") {
-        event.preventDefault();
-        sendMessage();
-      } else {
-        sendTyping();
-      }
-    });
+      sendMessageButton.addEventListener("click", sendMessage);
+      messageInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          sendMessage();
+        } else {
+          sendTyping();
+        }
+      });
 
-    /* ------------------------
-       LEAVE NOTIFICATION
-       Sends a "leave" message on page unload
-    ------------------------ */
-    window.addEventListener('beforeunload', () => {
-      if (dataChannel && dataChannel.readyState === "open") {
-        const leaveMsg = { type: "leave", name: userName, time: new Date().toISOString() };
-        dataChannel.send(JSON.stringify(leaveMsg));
-      }
-    });
-  </script>
-</body>
+      window.addEventListener("beforeunload", () => {
+        if (dataChannel && dataChannel.readyState === "open") {
+          const leaveMsg = {
+            type: "leave",
+            name: userName,
+            time: new Date().toISOString(),
+          };
+          dataChannel.send(JSON.stringify(leaveMsg));
+        }
+      });
+    </script>
+  </body>
 </html>
