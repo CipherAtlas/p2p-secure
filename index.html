@@ -229,6 +229,7 @@
         box-sizing: border-box;
         display: none;
       }
+
       /* --- Light Mode Overrides --- */
       body.light-mode {
         background-color: #f0f0f0;
@@ -303,6 +304,13 @@
         font-weight: bold;
       }
 
+      /* --- INCOMING REQUEST (HOST UI) --- */
+      #incomingRequestSection {
+        display: none;
+        text-align: center;
+        margin-top: 10px;
+      }
+
       /* --- RESPONSIVE (MOBILE) --- */
       @media (max-width: 600px) {
         .container {
@@ -350,22 +358,25 @@
           <button id="setUserName">Set Name</button>
         </div>
 
-        <!-- Host UI: Create and share offer -->
+        <!-- Host UI -->
         <div id="hostSection" style="display: none">
-          <p><strong>Step 1:</strong> Copy this offer and send it to your peer:</p>
+          <p><strong>Step 1:</strong> Copy this offer and share with your peer:</p>
           <textarea id="offer" readonly></textarea>
-          <p><strong>Step 2:</strong> Paste the answer from your peer:</p>
-          <textarea id="answerInput" placeholder="Paste answer here..."></textarea>
-          <button id="setAnswer">Set Answer</button>
+          <p>Once your peer connects using this offer code, you will see an incoming request below.</p>
+          
+          <!-- Incoming request appears here -->
+          <div id="incomingRequestSection">
+            <div id="incomingRequestInfo"></div>
+            <button id="approveRequest">Approve</button>
+            <button id="rejectRequest">Reject</button>
+          </div>
         </div>
 
-        <!-- Peer UI: Paste offer and create answer -->
+        <!-- Peer UI -->
         <div id="peerSection" style="display: none">
           <p><strong>Step 1:</strong> Paste the offer from the host:</p>
           <textarea id="offerInput" placeholder="Paste offer here..."></textarea>
-          <button id="createAnswer">Create Answer</button>
-          <p><strong>Step 2:</strong> Copy this answer and send it to the host:</p>
-          <textarea id="answer" readonly></textarea>
+          <button id="connectToHost">Connect</button>
         </div>
       </div>
 
@@ -445,6 +456,7 @@
       let selfDestructTime = 10; // in minutes
       let encryptionPassphrase = "default";
       let encryptionKey = null;
+      let peerAnswerData = null; // Will store the pending peer answer object
 
       // DOM Elements
       const roleSelection = document.getElementById("roleSelection");
@@ -453,25 +465,30 @@
       const nameSection = document.getElementById("nameSection");
       const userNameInput = document.getElementById("userNameInput");
       const setUserNameButton = document.getElementById("setUserName");
+
       const hostSection = document.getElementById("hostSection");
-      const peerSection = document.getElementById("peerSection");
       const offerTextarea = document.getElementById("offer");
-      const answerInput = document.getElementById("answerInput");
-      const setAnswerButton = document.getElementById("setAnswer");
+
+      const incomingRequestSection = document.getElementById("incomingRequestSection");
+      const incomingRequestInfo = document.getElementById("incomingRequestInfo");
+      const approveRequestButton = document.getElementById("approveRequest");
+      const rejectRequestButton = document.getElementById("rejectRequest");
+
+      const peerSection = document.getElementById("peerSection");
       const offerInput = document.getElementById("offerInput");
-      const createAnswerButton = document.getElementById("createAnswer");
-      const answerTextarea = document.getElementById("answer");
+      const connectToHostButton = document.getElementById("connectToHost");
+
       const chatDiv = document.getElementById("chat");
       const chatArea = document.getElementById("chatArea");
       const chatHeader = document.getElementById("chatHeader");
       const messageInput = document.getElementById("messageInput");
       const sendMessageButton = document.getElementById("sendMessage");
+      const typingIndicator = document.getElementById("typingIndicator");
       const clearChatButton = document.getElementById("clearChat");
       const clearChatOptions = document.getElementById("clearChatOptions");
       const clearForMeButton = document.getElementById("clearForMe");
       const clearForEveryoneButton = document.getElementById("clearForEveryone");
       const cancelClearButton = document.getElementById("cancelClear");
-      const typingIndicator = document.getElementById("typingIndicator");
       const emojiToggle = document.getElementById("emojiToggle");
       const emojiMenu = document.getElementById("emojiMenu");
       const openSettingsButton = document.getElementById("openSettings");
@@ -483,7 +500,9 @@
       const connectionStatus = document.getElementById("connectionStatus");
       const exitCountdown = document.getElementById("exitCountdown");
 
-      // Helper function: collapse all menus
+      /* ------------------------
+       UTILITY: Collapse All Menus
+      ------------------------ */
       function collapseAllMenus() {
         emojiMenu.style.display = "none";
         clearChatOptions.style.display = "none";
@@ -553,7 +572,10 @@
       function addConnectionStateListener() {
         localConnection.oniceconnectionstatechange = () => {
           connectionStatus.textContent = "Status: " + localConnection.iceConnectionState;
-          if (localConnection.iceConnectionState === "disconnected" || localConnection.iceConnectionState === "failed") {
+          if (
+            localConnection.iceConnectionState === "disconnected" ||
+            localConnection.iceConnectionState === "failed"
+          ) {
             console.log("Attempting to restart ICE...");
             localConnection.restartIce();
           }
@@ -570,12 +592,15 @@
         setupDataChannel();
         localConnection.onicecandidate = (event) => {
           if (event.candidate === null) {
+            // Once we have the full offer:
             const offerObj = {
               sdp: localConnection.localDescription.sdp,
               type: localConnection.localDescription.type,
               hostName: userName,
             };
             offerTextarea.value = JSON.stringify(offerObj);
+            // Save the same to localStorage for consistency, if needed
+            localStorage.setItem("hostOffer", JSON.stringify(offerObj));
           }
         };
         localConnection
@@ -629,43 +654,43 @@
       });
 
       /* ------------------------
-       SIGNALING - Host & Peer
+       PEER: Connect to Host with Offer
       ------------------------ */
-      setAnswerButton.addEventListener("click", async () => {
-        try {
-          const answer = JSON.parse(answerInput.value);
-          await localConnection.setRemoteDescription(answer);
-          if (answer.peerName) {
-            chatHeader.textContent = "Chat with " + answer.peerName;
-          }
-        } catch (e) {
-          alert("Invalid answer. Please check the input.");
-        }
-      });
-
-      createAnswerButton.addEventListener("click", async () => {
+      connectToHostButton.addEventListener("click", async () => {
         try {
           const offer = JSON.parse(offerInput.value);
-          chatHeader.textContent = offer.hostName ? "Chat with " + offer.hostName : "Chat with Host";
+          chatHeader.textContent = offer.hostName
+            ? "Chat with " + offer.hostName
+            : "Chat with Host";
+
+          // Create Peer Connection
           localConnection = new RTCPeerConnection(configuration);
           addConnectionStateListener();
+
+          // Listen for data channel
           localConnection.ondatachannel = (event) => {
             dataChannel = event.channel;
             setupDataChannel();
           };
+
+          // Set host's offer as remote desc
           await localConnection.setRemoteDescription(offer);
+
+          // Create answer and set local desc
           const answer = await localConnection.createAnswer();
           answer.peerName = userName;
           await localConnection.setLocalDescription(answer);
+
+          // Once ICE is complete, store the answer behind the scenes for Host
           localConnection.onicecandidate = (event) => {
             if (event.candidate === null) {
-              answerTextarea.value = JSON.stringify(localConnection.localDescription);
               const answerObj = {
                 sdp: localConnection.localDescription.sdp,
                 type: localConnection.localDescription.type,
                 peerName: userName,
               };
               localStorage.setItem("peerAnswer", JSON.stringify(answerObj));
+              // No manual copy/paste needed. We just wait for host to approve.
             }
           };
         } catch (e) {
@@ -673,17 +698,48 @@
         }
       });
 
+      /* ------------------------
+       HOST: Listen for Peer Answer "Behind the Scenes"
+      ------------------------ */
       window.addEventListener("storage", (event) => {
-        if (event.key === "peerAnswer") {
+        if (selectedRole === "host" && event.key === "peerAnswer") {
           try {
             const answerData = JSON.parse(event.newValue);
-            if (answerData.peerName) {
-              chatHeader.textContent = "Chat with " + answerData.peerName;
+            if (answerData && answerData.peerName) {
+              // Store this so we can use it if "Approve" is clicked
+              peerAnswerData = answerData;
+              incomingRequestInfo.textContent =
+                "Incoming connection request from " + answerData.peerName;
+              incomingRequestSection.style.display = "block";
             }
           } catch (e) {
             console.error("Error parsing answer data from localStorage", e);
           }
         }
+      });
+
+      /* ------------------------
+       HOST: Approve or Reject the Connection
+      ------------------------ */
+      approveRequestButton.addEventListener("click", async () => {
+        if (!peerAnswerData) return;
+        try {
+          await localConnection.setRemoteDescription(peerAnswerData);
+          // Once remote desc is set, the channel should open
+          incomingRequestSection.style.display = "none";
+          peerAnswerData = null; // Clear
+        } catch (error) {
+          console.error("Failed to set remote description:", error);
+        }
+      });
+
+      rejectRequestButton.addEventListener("click", () => {
+        incomingRequestInfo.textContent = "Connection request rejected.";
+        // Keep or remove this as you see fit
+        peerAnswerData = null; // Clear
+        setTimeout(() => {
+          incomingRequestSection.style.display = "none";
+        }, 3000);
       });
 
       /* ------------------------
@@ -715,7 +771,7 @@
               .then((plainText) => {
                 addMessage(msg.name, plainText, false, new Date(msg.time));
               })
-              .catch((err) => {
+              .catch(() => {
                 addMessage(msg.name, "[Decryption error]", false, new Date(msg.time));
               });
           } else {
@@ -796,13 +852,17 @@
           const msg = { type: "typing", name: userName };
           dataChannel.send(JSON.stringify(msg));
           typingSent = true;
-          setTimeout(() => { typingSent = false; }, 3000);
+          setTimeout(() => {
+            typingSent = false;
+          }, 3000);
         }
       }
       function showTypingIndicator(sender) {
         typingIndicator.textContent = sender + " is typing...";
         clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => { typingIndicator.textContent = ""; }, 3000);
+        typingTimeout = setTimeout(() => {
+          typingIndicator.textContent = "";
+        }, 3000);
       }
 
       /* ------------------------
@@ -853,7 +913,7 @@
       emojiToggle.addEventListener("click", () => {
         collapseAllMenus();
         // Toggle emoji menu visibility
-        emojiMenu.style.display = (emojiMenu.style.display === "flex") ? "none" : "flex";
+        emojiMenu.style.display = emojiMenu.style.display === "flex" ? "none" : "flex";
       });
       emojiMenu.addEventListener("click", (event) => {
         if (event.target.tagName === "SPAN") {
@@ -874,7 +934,7 @@
       saveSettingsButton.addEventListener("click", async () => {
         encryptionPassphrase = encryptionPassphraseInput.value.trim() || "default";
         selfDestructTime = parseInt(selfDestructTimerInput.value) || 10;
-        // Apply theme without alerts
+        // Apply theme
         const theme = document.getElementById("themeSelect").value;
         if (theme === "light") {
           document.body.classList.add("light-mode");
@@ -907,9 +967,7 @@
             chatDiv.style.display = "none";
             // Clear any leftover connection data
             offerTextarea.value = "";
-            answerTextarea.value = "";
             offerInput.value = "";
-            answerInput.value = "";
             chatArea.innerHTML = "";
             messageInput.value = "";
             messageInput.disabled = false;
@@ -923,7 +981,7 @@
       }
 
       /* ------------------------
-       EVENT LISTENERS
+       SEND MESSAGE EVENTS
       ------------------------ */
       sendMessageButton.addEventListener("click", sendMessage);
       messageInput.addEventListener("keydown", (event) => {
@@ -935,6 +993,9 @@
         }
       });
 
+      /* ------------------------
+       LEAVING THE PAGE
+      ------------------------ */
       window.addEventListener("beforeunload", () => {
         if (dataChannel && dataChannel.readyState === "open") {
           const leaveMsg = {
