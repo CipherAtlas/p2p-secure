@@ -229,28 +229,7 @@
         box-sizing: border-box;
         display: none;
       }
-      /* New rule for light mode settings to ensure text visibility */
-      body.light-mode #settingsMenu {
-        background: rgba(230, 230, 230, 0.9);
-        color: #000;
-      }
-
-      /* --- EXIT COUNTDOWN --- */
-      #exitCountdown {
-        display: none;
-        text-align: center;
-        font-size: 1.2em;
-        margin-top: 10px;
-      }
-
-      /* --- CONNECTION STATUS --- */
-      #connectionStatus {
-        text-align: center;
-        margin-bottom: 10px;
-        font-weight: bold;
-      }
-
-      /* --- LIGHT MODE TEXT COLOR OVERRIDES --- */
+      /* --- Light Mode Overrides --- */
       body.light-mode {
         background-color: #f0f0f0;
         color: #000;
@@ -298,6 +277,31 @@
       body.light-mode #connectionStatus {
         color: #000;
       }
+      /* Additional override for settings menu in light mode */
+      body.light-mode #settingsMenu,
+      body.light-mode #settingsMenu label,
+      body.light-mode #settingsMenu input,
+      body.light-mode #settingsMenu select,
+      body.light-mode #settingsMenu button {
+        background: #fff !important;
+        color: #000 !important;
+        border: 1px solid #ccc;
+      }
+
+      /* --- EXIT COUNTDOWN --- */
+      #exitCountdown {
+        display: none;
+        text-align: center;
+        font-size: 1.2em;
+        margin-top: 10px;
+      }
+
+      /* --- CONNECTION STATUS --- */
+      #connectionStatus {
+        text-align: center;
+        margin-bottom: 10px;
+        font-weight: bold;
+      }
 
       /* --- RESPONSIVE (MOBILE) --- */
       @media (max-width: 600px) {
@@ -342,39 +346,25 @@
 
         <!-- Display Name Input Section -->
         <div id="nameSection">
-          <input
-            type="text"
-            id="userNameInput"
-            placeholder="Enter Your Display Name"
-          />
+          <input type="text" id="userNameInput" placeholder="Enter Your Display Name" />
           <button id="setUserName">Set Name</button>
         </div>
 
         <!-- Host UI: Create and share offer -->
         <div id="hostSection" style="display: none">
-          <p>
-            <strong>Step 1:</strong> Copy this offer and send it to your peer:
-          </p>
+          <p><strong>Step 1:</strong> Copy this offer and send it to your peer:</p>
           <textarea id="offer" readonly></textarea>
           <p><strong>Step 2:</strong> Paste the answer from your peer:</p>
-          <textarea
-            id="answerInput"
-            placeholder="Paste answer here..."
-          ></textarea>
+          <textarea id="answerInput" placeholder="Paste answer here..."></textarea>
           <button id="setAnswer">Set Answer</button>
         </div>
 
         <!-- Peer UI: Paste offer and create answer -->
         <div id="peerSection" style="display: none">
           <p><strong>Step 1:</strong> Paste the offer from the host:</p>
-          <textarea
-            id="offerInput"
-            placeholder="Paste offer here..."
-          ></textarea>
+          <textarea id="offerInput" placeholder="Paste offer here..."></textarea>
           <button id="createAnswer">Create Answer</button>
-          <p>
-            <strong>Step 2:</strong> Copy this answer and send it to the host:
-          </p>
+          <p><strong>Step 2:</strong> Copy this answer and send it to the host:</p>
           <textarea id="answer" readonly></textarea>
         </div>
       </div>
@@ -389,24 +379,12 @@
 
         <!-- Message Input Area -->
         <div id="messageContainer">
-          <input
-            type="text"
-            id="messageInput"
-            placeholder="Type your message here..."
-          />
+          <input type="text" id="messageInput" placeholder="Type your message here..." />
           <button id="sendMessage">➤</button>
         </div>
 
-        <!-- Controls: Emoji, Settings, Clear Chat -->
-        <div
-          style="
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            margin-top: 10px;
-            flex-wrap: wrap;
-          "
-        >
+        <!-- Menu Options: Emoji, Settings, Clear Chat -->
+        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
           <button id="emojiToggle">Emoji</button>
           <button id="openSettings">Settings</button>
           <button id="clearChat">Clear Chat</button>
@@ -441,12 +419,7 @@
       <div id="settingsMenu" class="section">
         <h2>Settings</h2>
         <label>Encryption Passphrase:</label>
-        <input
-          type="text"
-          id="encryptionPassphraseInput"
-          placeholder="Enter passphrase"
-          value="default"
-        />
+        <input type="text" id="encryptionPassphraseInput" placeholder="Enter passphrase" value="default" />
         <label>Self-Destruct Timer (minutes):</label>
         <input type="number" id="selfDestructTimerInput" value="10" min="1" />
         <label>Theme:</label>
@@ -496,24 +469,26 @@
       const clearChatButton = document.getElementById("clearChat");
       const clearChatOptions = document.getElementById("clearChatOptions");
       const clearForMeButton = document.getElementById("clearForMe");
-      const clearForEveryoneButton =
-        document.getElementById("clearForEveryone");
+      const clearForEveryoneButton = document.getElementById("clearForEveryone");
       const cancelClearButton = document.getElementById("cancelClear");
       const typingIndicator = document.getElementById("typingIndicator");
       const emojiToggle = document.getElementById("emojiToggle");
       const emojiMenu = document.getElementById("emojiMenu");
       const openSettingsButton = document.getElementById("openSettings");
       const settingsMenu = document.getElementById("settingsMenu");
-      const encryptionPassphraseInput = document.getElementById(
-        "encryptionPassphraseInput"
-      );
-      const selfDestructTimerInput = document.getElementById(
-        "selfDestructTimerInput"
-      );
+      const encryptionPassphraseInput = document.getElementById("encryptionPassphraseInput");
+      const selfDestructTimerInput = document.getElementById("selfDestructTimerInput");
       const saveSettingsButton = document.getElementById("saveSettings");
       const closeSettingsButton = document.getElementById("closeSettings");
       const connectionStatus = document.getElementById("connectionStatus");
       const exitCountdown = document.getElementById("exitCountdown");
+
+      // Helper function: collapse all menus
+      function collapseAllMenus() {
+        emojiMenu.style.display = "none";
+        clearChatOptions.style.display = "none";
+        settingsMenu.style.display = "none";
+      }
 
       /* ------------------------
        END-TO-END ENCRYPTION FUNCTIONS
@@ -577,12 +552,8 @@
       ------------------------ */
       function addConnectionStateListener() {
         localConnection.oniceconnectionstatechange = () => {
-          connectionStatus.textContent =
-            "Status: " + localConnection.iceConnectionState;
-          if (
-            localConnection.iceConnectionState === "disconnected" ||
-            localConnection.iceConnectionState === "failed"
-          ) {
+          connectionStatus.textContent = "Status: " + localConnection.iceConnectionState;
+          if (localConnection.iceConnectionState === "disconnected" || localConnection.iceConnectionState === "failed") {
             console.log("Attempting to restart ICE...");
             localConnection.restartIce();
           }
@@ -675,9 +646,7 @@
       createAnswerButton.addEventListener("click", async () => {
         try {
           const offer = JSON.parse(offerInput.value);
-          chatHeader.textContent = offer.hostName
-            ? "Chat with " + offer.hostName
-            : "Chat with Host";
+          chatHeader.textContent = offer.hostName ? "Chat with " + offer.hostName : "Chat with Host";
           localConnection = new RTCPeerConnection(configuration);
           addConnectionStateListener();
           localConnection.ondatachannel = (event) => {
@@ -690,9 +659,7 @@
           await localConnection.setLocalDescription(answer);
           localConnection.onicecandidate = (event) => {
             if (event.candidate === null) {
-              answerTextarea.value = JSON.stringify(
-                localConnection.localDescription
-              );
+              answerTextarea.value = JSON.stringify(localConnection.localDescription);
               const answerObj = {
                 sdp: localConnection.localDescription.sdp,
                 type: localConnection.localDescription.type,
@@ -749,12 +716,7 @@
                 addMessage(msg.name, plainText, false, new Date(msg.time));
               })
               .catch((err) => {
-                addMessage(
-                  msg.name,
-                  "[Decryption error]",
-                  false,
-                  new Date(msg.time)
-                );
+                addMessage(msg.name, "[Decryption error]", false, new Date(msg.time));
               });
           } else {
             addMessage(msg.name, msg.text, false, new Date(msg.time));
@@ -834,26 +796,20 @@
           const msg = { type: "typing", name: userName };
           dataChannel.send(JSON.stringify(msg));
           typingSent = true;
-          setTimeout(() => {
-            typingSent = false;
-          }, 3000);
+          setTimeout(() => { typingSent = false; }, 3000);
         }
       }
       function showTypingIndicator(sender) {
         typingIndicator.textContent = sender + " is typing...";
         clearTimeout(typingTimeout);
-        typingTimeout = setTimeout(() => {
-          typingIndicator.textContent = "";
-        }, 3000);
+        typingTimeout = setTimeout(() => { typingIndicator.textContent = ""; }, 3000);
       }
 
       /* ------------------------
        NOTIFICATION SOUND
       ------------------------ */
       function playNotificationSound() {
-        const audio = new Audio(
-          "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAB"
-        );
+        const audio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAB");
         audio.play().catch((e) => console.log("Notification sound error", e));
       }
 
@@ -864,7 +820,7 @@
         chatArea.innerHTML = "";
       }
       clearChatButton.addEventListener("click", () => {
-        clearChatButton.style.display = "none";
+        collapseAllMenus();
         clearChatOptions.style.display = "flex";
       });
       clearForMeButton.addEventListener("click", () => {
@@ -895,8 +851,9 @@
        EMOJI MENU FUNCTIONALITY
       ------------------------ */
       emojiToggle.addEventListener("click", () => {
-        emojiMenu.style.display =
-          emojiMenu.style.display === "flex" ? "none" : "flex";
+        collapseAllMenus();
+        // Toggle emoji menu visibility
+        emojiMenu.style.display = (emojiMenu.style.display === "flex") ? "none" : "flex";
       });
       emojiMenu.addEventListener("click", (event) => {
         if (event.target.tagName === "SPAN") {
@@ -908,14 +865,14 @@
        SETTINGS MENU FUNCTIONALITY & THEME SWITCHING
       ------------------------ */
       openSettingsButton.addEventListener("click", () => {
+        collapseAllMenus();
         settingsMenu.style.display = "block";
       });
       closeSettingsButton.addEventListener("click", () => {
         settingsMenu.style.display = "none";
       });
       saveSettingsButton.addEventListener("click", async () => {
-        encryptionPassphrase =
-          encryptionPassphraseInput.value.trim() || "default";
+        encryptionPassphrase = encryptionPassphraseInput.value.trim() || "default";
         selfDestructTime = parseInt(selfDestructTimerInput.value) || 10;
         // Apply theme without alerts
         const theme = document.getElementById("themeSelect").value;
@@ -942,22 +899,25 @@
           } else {
             clearInterval(intervalId);
             exitCountdown.style.display = "none";
-            // Return to default/signaling page and reset UI
-            chatDiv.style.display = "none";
-            chatArea.innerHTML = "";
-            messageInput.value = "";
-            messageInput.disabled = false;
-            sendMessageButton.disabled = false;
-            // Reset signaling and connection UI
-            document.getElementById("signaling").style.display = "block";
-            roleSelection.style.display = "flex";
-            nameSection.style.display = "none";
+            // Hide all menus and connection-related UI
+            collapseAllMenus();
+            settingsMenu.style.display = "none";
             hostSection.style.display = "none";
             peerSection.style.display = "none";
+            chatDiv.style.display = "none";
+            // Clear any leftover connection data
             offerTextarea.value = "";
             answerTextarea.value = "";
             offerInput.value = "";
             answerInput.value = "";
+            chatArea.innerHTML = "";
+            messageInput.value = "";
+            messageInput.disabled = false;
+            sendMessageButton.disabled = false;
+            // Show default signaling UI (role selection only)
+            document.getElementById("signaling").style.display = "block";
+            roleSelection.style.display = "flex";
+            nameSection.style.display = "none";
           }
         }, 1000);
       }
