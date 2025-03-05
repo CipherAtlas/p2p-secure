@@ -229,6 +229,11 @@
         box-sizing: border-box;
         display: none;
       }
+      /* New rule for light mode settings to ensure text visibility */
+      body.light-mode #settingsMenu {
+        background: rgba(230, 230, 230, 0.9);
+        color: #000;
+      }
 
       /* --- EXIT COUNTDOWN --- */
       #exitCountdown {
@@ -250,18 +255,15 @@
         background-color: #f0f0f0;
         color: #000;
       }
-
       body.light-mode .container {
         background: rgba(245, 245, 245, 0.9);
         box-shadow: 0 0 15px #999;
         color: #000;
       }
-
       body.light-mode .section {
         background: rgba(230, 230, 230, 0.8);
         color: #000;
       }
-
       body.light-mode textarea,
       body.light-mode input[type="text"],
       body.light-mode input[type="number"],
@@ -269,41 +271,34 @@
         background: rgba(255, 255, 255, 0.8);
         color: #000;
       }
-
       body.light-mode button {
         background-color: #7b2cbf;
         color: #fff;
       }
-
       body.light-mode #emojiMenu {
         background: rgba(230, 230, 230, 0.9);
         color: #000;
       }
-
       body.light-mode #chatArea {
         background: #fff;
         color: #000;
       }
-
       body.light-mode #typingIndicator {
         color: #333;
       }
-
       body.light-mode .message {
         color: #000;
       }
-
       body.light-mode .message.self {
         color: #000;
       }
-
       body.light-mode .timestamp {
         color: #666;
       }
-
       body.light-mode #connectionStatus {
         color: #000;
       }
+
       /* --- RESPONSIVE (MOBILE) --- */
       @media (max-width: 600px) {
         .container {
@@ -522,7 +517,7 @@
 
       /* ------------------------
        END-TO-END ENCRYPTION FUNCTIONS
-    ------------------------ */
+      ------------------------ */
       async function deriveKey(passphrase) {
         const enc = new TextEncoder();
         const keyMaterial = await window.crypto.subtle.importKey(
@@ -579,7 +574,7 @@
 
       /* ------------------------
        CONNECTION & ICE LISTENER
-    ------------------------ */
+      ------------------------ */
       function addConnectionStateListener() {
         localConnection.oniceconnectionstatechange = () => {
           connectionStatus.textContent =
@@ -596,7 +591,7 @@
 
       /* ------------------------
        ROLE SELECTION & NAME SETUP
-    ------------------------ */
+      ------------------------ */
       function startHostProcess() {
         localConnection = new RTCPeerConnection(configuration);
         addConnectionStateListener();
@@ -664,7 +659,7 @@
 
       /* ------------------------
        SIGNALING - Host & Peer
-    ------------------------ */
+      ------------------------ */
       setAnswerButton.addEventListener("click", async () => {
         try {
           const answer = JSON.parse(answerInput.value);
@@ -726,7 +721,7 @@
 
       /* ------------------------
        DATA CHANNEL SETUP
-    ------------------------ */
+      ------------------------ */
       function setupDataChannel() {
         dataChannel.onopen = () => {
           console.log("Data channel open");
@@ -745,7 +740,7 @@
 
       /* ------------------------
        HANDLE INCOMING MESSAGES
-    ------------------------ */
+      ------------------------ */
       function handleIncomingMessage(msg) {
         if (msg.type === "chat") {
           if (msg.encrypted) {
@@ -790,7 +785,7 @@
 
       /* ------------------------
        ADD MESSAGES TO CHAT (with self-destruct)
-    ------------------------ */
+      ------------------------ */
       function addMessage(sender, text, isSelf, time) {
         const msgDiv = document.createElement("div");
         msgDiv.className = "message" + (isSelf ? " self" : "");
@@ -809,7 +804,7 @@
 
       /* ------------------------
        SEND CHAT MESSAGE (with encryption)
-    ------------------------ */
+      ------------------------ */
       async function sendMessage() {
         const text = messageInput.value.trim();
         if (text && dataChannel && dataChannel.readyState === "open") {
@@ -833,7 +828,7 @@
 
       /* ------------------------
        TYPING INDICATOR
-    ------------------------ */
+      ------------------------ */
       function sendTyping() {
         if (dataChannel && dataChannel.readyState === "open" && !typingSent) {
           const msg = { type: "typing", name: userName };
@@ -854,7 +849,7 @@
 
       /* ------------------------
        NOTIFICATION SOUND
-    ------------------------ */
+      ------------------------ */
       function playNotificationSound() {
         const audio = new Audio(
           "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAB"
@@ -864,7 +859,7 @@
 
       /* ------------------------
        CLEAR CHAT FUNCTIONS
-    ------------------------ */
+      ------------------------ */
       function clearChatArea() {
         chatArea.innerHTML = "";
       }
@@ -898,7 +893,7 @@
 
       /* ------------------------
        EMOJI MENU FUNCTIONALITY
-    ------------------------ */
+      ------------------------ */
       emojiToggle.addEventListener("click", () => {
         emojiMenu.style.display =
           emojiMenu.style.display === "flex" ? "none" : "flex";
@@ -911,7 +906,7 @@
 
       /* ------------------------
        SETTINGS MENU FUNCTIONALITY & THEME SWITCHING
-    ------------------------ */
+      ------------------------ */
       openSettingsButton.addEventListener("click", () => {
         settingsMenu.style.display = "block";
       });
@@ -935,7 +930,7 @@
 
       /* ------------------------
        EXIT COUNTDOWN FUNCTIONALITY
-    ------------------------ */
+      ------------------------ */
       function startExitCountdown() {
         let timeLeft = 5;
         exitCountdown.style.display = "block";
@@ -947,21 +942,29 @@
           } else {
             clearInterval(intervalId);
             exitCountdown.style.display = "none";
-            // Return to main/signaling page
+            // Return to default/signaling page and reset UI
             chatDiv.style.display = "none";
-            document.getElementById("signaling").style.display = "block";
-            // Reset chat area and re-enable input
             chatArea.innerHTML = "";
             messageInput.value = "";
             messageInput.disabled = false;
             sendMessageButton.disabled = false;
+            // Reset signaling and connection UI
+            document.getElementById("signaling").style.display = "block";
+            roleSelection.style.display = "flex";
+            nameSection.style.display = "none";
+            hostSection.style.display = "none";
+            peerSection.style.display = "none";
+            offerTextarea.value = "";
+            answerTextarea.value = "";
+            offerInput.value = "";
+            answerInput.value = "";
           }
         }, 1000);
       }
 
       /* ------------------------
        EVENT LISTENERS
-    ------------------------ */
+      ------------------------ */
       sendMessageButton.addEventListener("click", sendMessage);
       messageInput.addEventListener("keydown", (event) => {
         if (event.key === "Enter") {
