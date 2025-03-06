@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Atlas's P2P Communication</title>
     <style>
-      /* --- BASE THEME (Default Dark Mode) --- */
+      /* --- BASE THEME (Default Dark Mode) & Custom Themes --- */
       body {
         font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
         background-color: #0d0d0d;
@@ -34,7 +34,6 @@
       .container:hover {
         box-shadow: 0 0 25px #4361ee;
       }
-
       /* --- LOGO & ANIMATION --- */
       @keyframes glowPulse {
         0% {
@@ -52,7 +51,6 @@
         margin-bottom: 10px;
         animation: glowPulse 2s ease-in-out infinite;
       }
-
       /* --- HEADINGS & SECTIONS --- */
       h1,
       h2 {
@@ -69,7 +67,6 @@
       p {
         margin: 10px 0;
       }
-
       /* --- TEXTAREAS & INPUTS --- */
       textarea,
       input[type="text"],
@@ -97,7 +94,6 @@
         height: 100px;
         resize: none;
       }
-
       /* --- BUTTONS --- */
       button {
         padding: 10px 20px;
@@ -120,7 +116,6 @@
       button:active {
         transform: scale(0.98);
       }
-
       /* --- CHAT AREA --- */
       #chatArea {
         max-height: 300px;
@@ -130,13 +125,19 @@
         border-radius: 5px;
         text-align: left;
         box-sizing: border-box;
+        position: relative;
       }
       .message {
         margin: 10px 0;
         word-wrap: break-word;
+        padding: 5px;
+        border-radius: 5px;
+        background: rgba(30, 30, 60, 0.5);
+        position: relative;
       }
       .message.self {
         text-align: right;
+        background: rgba(50, 50, 80, 0.5);
       }
       .timestamp {
         font-size: 0.8em;
@@ -148,7 +149,6 @@
         color: #ccc;
         height: 20px;
       }
-
       /* --- ROLE & NAME SELECTION --- */
       #roleSelection {
         display: flex;
@@ -165,7 +165,6 @@
         text-align: center;
         display: none;
       }
-
       /* --- MESSAGE CONTAINER --- */
       #messageContainer {
         display: flex;
@@ -189,7 +188,6 @@
         padding: 0;
         line-height: 40px;
       }
-
       /* --- EMOJI MENU --- */
       #emojiMenu {
         display: none;
@@ -212,14 +210,12 @@
         background: rgba(123, 44, 191, 0.2);
         border-radius: 3px;
       }
-
       /* --- CLEAR CHAT OPTIONS --- */
       #clearChatOptions {
         display: none;
         gap: 10px;
         margin: 5px 0;
       }
-
       /* --- SETTINGS MENU --- */
       #settingsMenu {
         background: rgba(20, 20, 50, 0.9);
@@ -229,8 +225,42 @@
         box-sizing: border-box;
         display: none;
       }
-
-      /* --- Light Mode Overrides --- */
+      /* --- FILE SHARING --- */
+      #fileShareContainer {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+      }
+      #fileShareButton {
+        padding: 8px 16px;
+        background-color: #4361ee;
+      }
+      #fileInput {
+        display: none;
+      }
+      .progressBar {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.2);
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 5px;
+      }
+      .progressBar div {
+        height: 8px;
+        background: #7b2cbf;
+        width: 0%;
+        transition: width 0.3s;
+      }
+      /* --- USER AVATAR --- */
+      .avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 5px;
+      }
+      /* --- LIGHT MODE OVERRIDES --- */
       body.light-mode {
         background-color: #f0f0f0;
         color: #000;
@@ -278,7 +308,6 @@
       body.light-mode #connectionStatus {
         color: #000;
       }
-      /* Additional override for settings menu in light mode */
       body.light-mode #settingsMenu,
       body.light-mode #settingsMenu label,
       body.light-mode #settingsMenu input,
@@ -288,7 +317,37 @@
         color: #000 !important;
         border: 1px solid #ccc;
       }
-
+      /* --- ADDITIONAL CUSTOM THEMES --- */
+      body.theme-blue {
+        background-color: #003366;
+        color: #ffffff;
+      }
+      body.theme-blue .container {
+        background: #002244;
+        border-color: #0055aa;
+        box-shadow: 0 0 15px #0055aa;
+        color: #ffffff;
+      }
+      body.theme-green {
+        background-color: #004d00;
+        color: #ffffff;
+      }
+      body.theme-green .container {
+        background: #003300;
+        border-color: #008000;
+        box-shadow: 0 0 15px #008000;
+        color: #ffffff;
+      }
+      body.theme-red {
+        background-color: #660000;
+        color: #ffffff;
+      }
+      body.theme-red .container {
+        background: #440000;
+        border-color: #aa0000;
+        box-shadow: 0 0 15px #aa0000;
+        color: #ffffff;
+      }
       /* --- EXIT COUNTDOWN --- */
       #exitCountdown {
         display: none;
@@ -296,28 +355,22 @@
         font-size: 1.2em;
         margin-top: 10px;
       }
-
-      /* --- CONNECTION STATUS --- */
+      /* --- CONNECTION STATUS & CLIENT ID --- */
       #connectionStatus {
         text-align: center;
         margin-bottom: 10px;
         font-weight: bold;
       }
-
-      /* --- ID DISPLAY --- */
       #clientIdDisplay {
         text-align: center;
         margin: 5px 0;
         font-size: 1.1em;
       }
-
-      /* --- SERVER STATUS DIV --- */
       #serverStatus {
         text-align: center;
         margin-bottom: 10px;
         font-style: italic;
       }
-
       /* --- RESPONSIVE (MOBILE) --- */
       @media (max-width: 600px) {
         .container {
@@ -350,10 +403,8 @@
         <img id="logo" src="image.webp" alt="Atlas's P2P Communication Logo" />
       </div>
       <h1>Atlas's P2P Communication</h1>
-
-      <!-- A status message for connecting/spinning up the server -->
+      <!-- Server Status -->
       <div id="serverStatus"></div>
-
       <!-- Signaling Section -->
       <div id="signaling" class="section">
         <!-- Role Selection -->
@@ -361,53 +412,76 @@
           <button id="startHost">Start as Host</button>
           <button id="joinHost">Join as Peer</button>
         </div>
-
-        <!-- Display Name Input Section -->
+        <!-- Display Name & Avatar Input Section -->
         <div id="nameSection">
-          <input type="text" id="userNameInput" placeholder="Enter Your Display Name" />
+          <img
+            id="avatarPreview"
+            class="avatar"
+            src="default-avatar.png"
+            alt="Avatar"
+            style="display: none"
+          />
+          <input
+            type="text"
+            id="userNameInput"
+            placeholder="Enter Your Display Name"
+          />
           <button id="setUserName">Set Name</button>
         </div>
-
-        <!-- Show the user’s unique client ID once connected -->
-        <div id="clientIdDisplay" style="display: none;">
+        <!-- Client ID Display -->
+        <div id="clientIdDisplay" style="display: none">
           <strong>Your ID:</strong> <span id="clientIdValue">N/A</span>
         </div>
-
-        <!-- For HOST: Type your peer's ID -->
-        <div id="hostSection" style="display: none;">
+        <!-- Host Input -->
+        <div id="hostSection" style="display: none">
           <p><strong>Peer's ID:</strong></p>
-          <input type="text" id="peerIdInput" placeholder="Enter the peer's ID" />
-          <!-- CHANGED LABEL HERE -->
+          <input
+            type="text"
+            id="peerIdInput"
+            placeholder="Enter the peer's ID"
+          />
           <button id="callPeer">Connect to Peer</button>
         </div>
-
-        <!-- For PEER: Wait for an incoming offer -->
-        <div id="peerSection" style="display: none;">
+        <!-- Peer Waiting Message -->
+        <div id="peerSection" style="display: none">
           <p>Waiting for incoming call from the Host...</p>
         </div>
       </div>
-
       <!-- Chat Section -->
       <div id="chat" class="section" style="display: none">
-        <!-- Chat Header & Connection Status -->
         <h2 id="chatHeader">Chat</h2>
         <div id="connectionStatus">Status: Connecting...</div>
+        <!-- Chat Display Area -->
         <div id="chatArea"></div>
         <div id="typingIndicator"></div>
-
         <!-- Message Input Area -->
         <div id="messageContainer">
-          <input type="text" id="messageInput" placeholder="Type your message here..." />
+          <input
+            type="text"
+            id="messageInput"
+            placeholder="Type your message here..."
+          />
           <button id="sendMessage">➤</button>
         </div>
-
+        <!-- File Sharing Controls -->
+        <div id="fileShareContainer">
+          <button id="fileShareButton">Share File</button>
+          <input type="file" id="fileInput" />
+        </div>
         <!-- Menu Options: Emoji, Settings, Clear Chat -->
-        <div style="display: flex; gap: 10px; align-items: center; margin-top: 10px; flex-wrap: wrap;">
+        <div
+          style="
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+            flex-wrap: wrap;
+          "
+        >
           <button id="emojiToggle">Emoji</button>
           <button id="openSettings">Settings</button>
           <button id="clearChat">Clear Chat</button>
         </div>
-
         <!-- Emoji Menu -->
         <div id="emojiMenu">
           <span>😀</span>
@@ -421,128 +495,120 @@
           <span>🎉</span>
           <span>🤔</span>
         </div>
-
         <!-- Clear Chat Options -->
         <div id="clearChatOptions">
           <button id="clearForMe">Clear for Me</button>
           <button id="clearForEveryone">Clear for Everyone</button>
           <button id="cancelClear">Cancel</button>
         </div>
-
-        <!-- Exit Countdown Display -->
+        <!-- Exit Countdown -->
         <div id="exitCountdown"></div>
       </div>
-
       <!-- Settings Menu -->
       <div id="settingsMenu" class="section">
         <h2>Settings</h2>
         <label>Encryption Passphrase:</label>
-        <input type="text" id="encryptionPassphraseInput" placeholder="Enter passphrase" value="default" />
+        <input
+          type="text"
+          id="encryptionPassphraseInput"
+          placeholder="Enter passphrase"
+          value="default"
+        />
         <label>Self-Destruct Timer (minutes):</label>
         <input type="number" id="selfDestructTimerInput" value="10" min="1" />
-        <label>Theme:</label>
+        <label>Chat Background:</label>
         <select id="themeSelect">
           <option value="default">Default (Dark Mode)</option>
-          <option value="light">Light Mode</option>
+          <option value="light">Light Background</option>
+          <option value="theme-blue">Blue Background</option>
+          <option value="theme-green">Green Background</option>
+          <option value="theme-red">Red Background</option>
         </select>
+        <label>Notification Sound:</label>
+        <select id="notificationSoundSelect">
+          <option value="default">Default</option>
+          <option value="chime">Chime</option>
+          <option value="beep">Beep</option>
+        </select>
+        <label>Upload Avatar:</label>
+        <input type="file" id="avatarInput" accept="image/*" />
         <button id="saveSettings">Save Settings</button>
         <button id="closeSettings">Close</button>
       </div>
     </div>
-
     <script>
       /************************************************************
        * 1) Server Wake-Up & Connecting Animation
        ************************************************************/
-      // Replace these with your own Render domain:
       const SIGNALING_SERVER_URL = "wss://p2p-secure-server.onrender.com";
-      const HTTP_WAKE_URL = "https://p2p-secure-server.onrender.com"; // for a quick "fetch" to wake up
-
+      const HTTP_WAKE_URL = "https://p2p-secure-server.onrender.com";
       const serverStatus = document.getElementById("serverStatus");
-
       let connectingDotsInterval;
       let connectionTimeout;
-
       function startConnectingAnimation() {
         let dotCount = 0;
         connectingDotsInterval = setInterval(() => {
-          dotCount = (dotCount % 3) + 1; 
+          dotCount = (dotCount % 3) + 1;
           let dots = ".".repeat(dotCount);
           serverStatus.textContent = "Connecting" + dots;
         }, 500);
       }
-
       function stopConnectingAnimation() {
         clearInterval(connectingDotsInterval);
       }
-
       function showLongWaitMessage() {
-        serverStatus.textContent = "Still connecting... The server may be waking up. Please keep waiting or refresh the page.";
+        serverStatus.textContent =
+          "Still connecting... The server may be waking up. Please keep waiting or refresh the page.";
       }
-
-      // We'll "ping" the server to try to wake it, then attempt the WebSocket
       function initiateServerConnection() {
-        // Show "Connecting" with animated dots
         startConnectingAnimation();
-
-        // If it takes >10 seconds, show a longer message
         connectionTimeout = setTimeout(showLongWaitMessage, 10000);
-
-        // Attempt a quick fetch to wake the server's free tier
         fetch(HTTP_WAKE_URL)
           .then(() => {
-            // Now connect to the WebSocket
             connectToSignalingServer();
           })
           .catch(() => {
-            // Even if fetch fails, try WS anyway
             connectToSignalingServer();
           });
       }
-
       /************************************************************
        * 2) Connect to Signaling Server via WebSocket
        ************************************************************/
       let socket;
-      let clientId = null;        // Assigned by server
-      let userName = "Anonymous"; // Set by user
-      let selectedRole = null;    // "host" or "peer"
-
+      let clientId = null;
+      let userName = "Anonymous";
+      let selectedRole = null;
+      let userAvatar = ""; // Base64 data URL for avatar
       function connectToSignalingServer() {
         socket = new WebSocket(SIGNALING_SERVER_URL);
-
         socket.onopen = () => {
           console.log("WebSocket: Connected.");
           stopConnectingAnimation();
           clearTimeout(connectionTimeout);
           serverStatus.textContent = "Connected to server!";
-          // Hide the message after 2 seconds
           setTimeout(() => {
             serverStatus.textContent = "";
           }, 2000);
         };
-
         socket.onmessage = (event) => {
           const msg = JSON.parse(event.data);
           handleSignalingMessage(msg);
         };
-
         socket.onerror = (err) => {
           console.error("WebSocket error:", err);
           stopConnectingAnimation();
-          serverStatus.textContent = "Error connecting. The server might be waking up; please wait or refresh.";
+          serverStatus.textContent =
+            "Error connecting. The server might be waking up; please wait or refresh.";
         };
-
         socket.onclose = () => {
-          console.warn("Socket closed. Possibly the server is sleeping or we got disconnected.");
+          console.warn("Socket closed.");
           stopConnectingAnimation();
-          serverStatus.textContent = "Disconnected. Server might be sleeping. Refresh or wait.";
+          serverStatus.textContent =
+            "Disconnected. Server might be sleeping. Refresh or wait.";
         };
       }
-
       function handleSignalingMessage(msg) {
         if (msg.type === "welcome") {
-          // The server assigned us a unique clientId
           clientId = msg.clientId;
           clientIdValue.textContent = clientId;
           document.getElementById("clientIdDisplay").style.display = "block";
@@ -557,68 +623,74 @@
             case "candidate":
               onCandidate(msg.from, msg.data);
               break;
+            case "read":
+              updateReadReceipt(msg.messageId, msg.name);
+              break;
+            case "file":
+              handleIncomingFile(msg);
+              break;
             default:
               console.log("Unknown WS message:", msg);
           }
         }
       }
-
       function sendToServer(target, type, data) {
         socket.send(JSON.stringify({ target, type, data }));
       }
-
       /************************************************************
        * 3) WebRTC / Chat Variables & Setup
        ************************************************************/
       let localConnection;
       let dataChannel;
-      let peerId = "";          
+      let peerId = "";
       let typingTimeout;
       let typingSent = false;
       let selfDestructTime = 10;
       let encryptionPassphrase = "default";
       let encryptionKey = null;
-
-      // DOM Refs
+      let messageCounter = 0;
       const roleSelection = document.getElementById("roleSelection");
       const startHostButton = document.getElementById("startHost");
       const joinHostButton = document.getElementById("joinHost");
       const nameSection = document.getElementById("nameSection");
       const userNameInput = document.getElementById("userNameInput");
       const setUserNameButton = document.getElementById("setUserName");
-
       const clientIdDisplay = document.getElementById("clientIdDisplay");
       const clientIdValue = document.getElementById("clientIdValue");
-
       const hostSection = document.getElementById("hostSection");
       const peerIdInput = document.getElementById("peerIdInput");
       const callPeerButton = document.getElementById("callPeer");
       const peerSection = document.getElementById("peerSection");
-
       const chatDiv = document.getElementById("chat");
       const chatHeader = document.getElementById("chatHeader");
       const connectionStatus = document.getElementById("connectionStatus");
       const chatArea = document.getElementById("chatArea");
       const typingIndicator = document.getElementById("typingIndicator");
-
       const messageInput = document.getElementById("messageInput");
       const sendMessageButton = document.getElementById("sendMessage");
       const clearChatButton = document.getElementById("clearChat");
       const clearChatOptions = document.getElementById("clearChatOptions");
       const clearForMeButton = document.getElementById("clearForMe");
-      const clearForEveryoneButton = document.getElementById("clearForEveryone");
+      const clearForEveryoneButton =
+        document.getElementById("clearForEveryone");
       const cancelClearButton = document.getElementById("cancelClear");
       const emojiToggle = document.getElementById("emojiToggle");
       const emojiMenu = document.getElementById("emojiMenu");
       const openSettingsButton = document.getElementById("openSettings");
       const settingsMenu = document.getElementById("settingsMenu");
-      const encryptionPassphraseInput = document.getElementById("encryptionPassphraseInput");
-      const selfDestructTimerInput = document.getElementById("selfDestructTimerInput");
+      const encryptionPassphraseInput = document.getElementById(
+        "encryptionPassphraseInput"
+      );
+      const selfDestructTimerInput = document.getElementById(
+        "selfDestructTimerInput"
+      );
       const saveSettingsButton = document.getElementById("saveSettings");
       const closeSettingsButton = document.getElementById("closeSettings");
       const exitCountdown = document.getElementById("exitCountdown");
       const signalingDiv = document.getElementById("signaling");
-
+      const fileShareButton = document.getElementById("fileShareButton");
+      const fileInput = document.getElementById("fileInput");
+      const avatarInput = document.getElementById("avatarInput");
       /************************************************************
        * 4) Role Selection & Name
        ************************************************************/
@@ -630,7 +702,6 @@
           showHostUI();
         }
       });
-
       joinHostButton.addEventListener("click", () => {
         selectedRole = "peer";
         if (userName === "Anonymous") {
@@ -639,7 +710,6 @@
           showPeerUI();
         }
       });
-
       setUserNameButton.addEventListener("click", () => {
         const name = userNameInput.value.trim();
         if (name) {
@@ -654,7 +724,6 @@
           alert("Please enter a valid display name.");
         }
       });
-
       function showHostUI() {
         roleSelection.style.display = "none";
         hostSection.style.display = "block";
@@ -665,23 +734,21 @@
         peerSection.style.display = "block";
         hostSection.style.display = "none";
       }
-
       /************************************************************
        * 5) Creating the PeerConnection & DataChannel
        ************************************************************/
       function createPeerConnection() {
         localConnection = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
         });
-
         localConnection.onicecandidate = (event) => {
           if (event.candidate) {
             sendToServer(peerId, "candidate", event.candidate);
           }
         };
-
         localConnection.oniceconnectionstatechange = () => {
-          connectionStatus.textContent = "Status: " + localConnection.iceConnectionState;
+          connectionStatus.textContent =
+            "Status: " + localConnection.iceConnectionState;
           if (
             localConnection.iceConnectionState === "disconnected" ||
             localConnection.iceConnectionState === "failed"
@@ -690,47 +757,58 @@
             localConnection.restartIce();
           }
         };
-
         localConnection.ondatachannel = (event) => {
           dataChannel = event.channel;
           setupDataChannel();
         };
       }
-
       function createDataChannel() {
         dataChannel = localConnection.createDataChannel("chat");
         setupDataChannel();
       }
-
       function setupDataChannel() {
         dataChannel.onopen = () => {
           console.log("Data channel open");
-          // Hide signaling, show chat
           signalingDiv.style.display = "none";
           chatDiv.style.display = "block";
         };
         dataChannel.onmessage = (event) => {
-          // Try to parse as JSON (for encryption)
           let incoming;
           try {
             incoming = JSON.parse(event.data);
-          } catch {
-            // If not JSON, just show raw text
-            addMessage("Peer", event.data, false, new Date());
-            return;
+          } catch (error) {
+            console.error(
+              "Failed to parse incoming message:",
+              error,
+              event.data
+            );
+            return; // Skip processing if JSON parsing fails
           }
-          // If it's structured, handle the type
-          handleIncomingMessage(incoming);
+
+          if (incoming.type === "chat") {
+            const formatted = parseMarkdown(incoming.text);
+            addMessage(
+              incoming.name,
+              formatted,
+              false,
+              new Date(incoming.time),
+              incoming.messageId,
+              incoming.avatar
+            );
+            sendReadReceipt(incoming.messageId);
+          } else if (incoming.type === "file") {
+            handleIncomingFile(incoming);
+          } else {
+            handleIncomingMessage(incoming);
+          }
         };
       }
-
       /************************************************************
        * 6) Host Flow: createOffer -> send to Peer
        ************************************************************/
       async function startHostCall() {
         createPeerConnection();
         createDataChannel();
-
         try {
           const offer = await localConnection.createOffer();
           await localConnection.setLocalDescription(offer);
@@ -747,12 +825,11 @@
         }
         startHostCall();
       });
-
       /************************************************************
        * 7) Peer Flow: onOffer -> setRemote -> createAnswer -> send
        ************************************************************/
       async function onOffer(from, offer) {
-        peerId = from; 
+        peerId = from;
         createPeerConnection();
         try {
           await localConnection.setRemoteDescription(offer);
@@ -763,7 +840,6 @@
           console.error("Error handling offer:", err);
         }
       }
-
       async function onAnswer(from, answer) {
         try {
           await localConnection.setRemoteDescription(answer);
@@ -772,7 +848,6 @@
           console.error("Error setting remote desc:", err);
         }
       }
-
       async function onCandidate(from, candidate) {
         try {
           await localConnection.addIceCandidate(candidate);
@@ -780,23 +855,21 @@
           console.error("Error adding ICE candidate:", err);
         }
       }
-
       /************************************************************
        * 8) Incoming Chat & System Messages
        ************************************************************/
       function handleIncomingMessage(msg) {
         if (msg.type === "chat") {
-          if (msg.encrypted) {
-            decryptMessage(msg.data)
-              .then((plainText) => {
-                addMessage(msg.name, plainText, false, new Date(msg.time));
-              })
-              .catch(() => {
-                addMessage(msg.name, "[Decryption error]", false, new Date(msg.time));
-              });
-          } else {
-            addMessage(msg.name, msg.text, false, new Date(msg.time));
-          }
+          const formatted = parseMarkdown(msg.text);
+          addMessage(
+            msg.name,
+            formatted,
+            false,
+            new Date(msg.time),
+            msg.messageId,
+            msg.avatar
+          );
+          sendReadReceipt(msg.messageId);
         } else if (msg.type === "typing") {
           showTypingIndicator(msg.name);
         } else if (msg.type === "clearEveryone") {
@@ -819,7 +892,6 @@
           startExitCountdown();
         }
       }
-
       /************************************************************
        * 9) End-to-End Encryption
        ************************************************************/
@@ -845,7 +917,6 @@
           ["encrypt", "decrypt"]
         );
       }
-
       async function encryptMessage(plaintext) {
         if (!encryptionKey) {
           encryptionKey = await deriveKey(encryptionPassphrase);
@@ -862,7 +933,6 @@
           ciphertext: Array.from(new Uint8Array(encrypted)),
         };
       }
-
       async function decryptMessage(encryptedObj) {
         if (!encryptionKey) {
           encryptionKey = await deriveKey(encryptionPassphrase);
@@ -876,24 +946,35 @@
         );
         return dec.decode(decrypted);
       }
-
       /************************************************************
-       * 10) Sending Chat Messages
+       * 10) Sending Chat Messages, File, and Read Receipts
        ************************************************************/
       async function sendMessage() {
         const text = messageInput.value.trim();
         if (text && dataChannel && dataChannel.readyState === "open") {
           try {
             const encryptedData = await encryptMessage(text);
+            const messageId = "msg-" + Date.now() + "-" + messageCounter++;
             const msg = {
               type: "chat",
               name: userName,
+              text: text,
               encrypted: true,
               data: encryptedData,
               time: new Date().toISOString(),
+              messageId: messageId,
+              avatar: userAvatar,
             };
             dataChannel.send(JSON.stringify(msg));
-            addMessage(userName, text, true, new Date());
+            const formatted = parseMarkdown(text);
+            addMessage(
+              userName,
+              formatted,
+              true,
+              new Date(),
+              messageId,
+              userAvatar
+            );
             messageInput.value = "";
           } catch (err) {
             console.error("Encryption error:", err);
@@ -909,23 +990,25 @@
           sendTyping();
         }
       });
-
-      function addMessage(sender, text, isSelf, time) {
+      function addMessage(sender, text, isSelf, time, messageId, avatar) {
         const msgDiv = document.createElement("div");
         msgDiv.className = "message" + (isSelf ? " self" : "");
+        msgDiv.dataset.messageId = messageId;
+        let avatarHTML = "";
+        if (avatar) {
+          avatarHTML = `<img src="${avatar}" class="avatar" alt="avatar">`;
+        }
         const timeString = `<span class="timestamp">${time.toLocaleTimeString()}</span>`;
-        msgDiv.innerHTML = `<strong>${sender}:</strong> ${text} ${timeString}`;
+        msgDiv.innerHTML = `${avatarHTML}<strong>${sender}:</strong> ${text} ${timeString}`;
         chatArea.appendChild(msgDiv);
         chatArea.scrollTop = chatArea.scrollHeight;
         if (!isSelf) playNotificationSound();
-        // Self-destruct
         setTimeout(() => {
           if (chatArea.contains(msgDiv)) {
             chatArea.removeChild(msgDiv);
           }
         }, selfDestructTime * 60000);
       }
-
       function sendTyping() {
         if (dataChannel && dataChannel.readyState === "open" && !typingSent) {
           const msg = { type: "typing", name: userName };
@@ -936,7 +1019,6 @@
           }, 3000);
         }
       }
-
       function showTypingIndicator(sender) {
         typingIndicator.textContent = sender + " is typing...";
         clearTimeout(typingTimeout);
@@ -944,16 +1026,25 @@
           typingIndicator.textContent = "";
         }, 3000);
       }
-
-      /************************************************************
-       * 11) Chat Utilities (clear, notifications, etc.)
-       ************************************************************/
-      function playNotificationSound() {
-        // Very short silent audio to avoid big downloads
-        const audio = new Audio("data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQgAAAB");
-        audio.play().catch(() => {});
+      function sendReadReceipt(messageId) {
+        if (dataChannel && dataChannel.readyState === "open") {
+          const msg = {
+            type: "read",
+            messageId: messageId,
+            name: userName,
+            time: new Date().toISOString(),
+          };
+          dataChannel.send(JSON.stringify(msg));
+        }
       }
-
+      function updateReadReceipt(messageId, readerName) {
+        const messages = document.querySelectorAll(
+          `.message[data-message-id="${messageId}"] .readReceipt`
+        );
+        messages.forEach((r) => {
+          r.textContent = "Read by " + readerName;
+        });
+      }
       clearChatButton.addEventListener("click", () => {
         collapseAllMenus();
         clearChatOptions.style.display = "flex";
@@ -975,7 +1066,6 @@
         resetClearChatOptions();
       });
       cancelClearButton.addEventListener("click", resetClearChatOptions);
-
       function clearChatArea() {
         chatArea.innerHTML = "";
       }
@@ -983,20 +1073,16 @@
         clearChatOptions.style.display = "none";
         clearChatButton.style.display = "inline-block";
       }
-
       emojiToggle.addEventListener("click", () => {
         collapseAllMenus();
-        emojiMenu.style.display = emojiMenu.style.display === "flex" ? "none" : "flex";
+        emojiMenu.style.display =
+          emojiMenu.style.display === "flex" ? "none" : "flex";
       });
       emojiMenu.addEventListener("click", (event) => {
         if (event.target.tagName === "SPAN") {
           messageInput.value += event.target.textContent;
         }
       });
-
-      /************************************************************
-       * 12) Settings & Theme
-       ************************************************************/
       openSettingsButton.addEventListener("click", () => {
         collapseAllMenus();
         settingsMenu.style.display = "block";
@@ -1005,27 +1091,24 @@
         settingsMenu.style.display = "none";
       });
       saveSettingsButton.addEventListener("click", () => {
-        encryptionPassphrase = encryptionPassphraseInput.value.trim() || "default";
+        encryptionPassphrase =
+          encryptionPassphraseInput.value.trim() || "default";
         selfDestructTime = parseInt(selfDestructTimerInput.value) || 10;
         const theme = document.getElementById("themeSelect").value;
+        document.body.className = "";
         if (theme === "light") {
           document.body.classList.add("light-mode");
-        } else {
-          document.body.classList.remove("light-mode");
+        } else if (theme !== "default") {
+          document.body.classList.add(theme);
         }
-        encryptionKey = null; // re-derive on next encryption
+        encryptionKey = null;
         settingsMenu.style.display = "none";
       });
-
       function collapseAllMenus() {
         emojiMenu.style.display = "none";
         clearChatOptions.style.display = "none";
         settingsMenu.style.display = "none";
       }
-
-      /************************************************************
-       * 13) Exit Countdown
-       ************************************************************/
       function startExitCountdown() {
         let timeLeft = 5;
         exitCountdown.style.display = "block";
@@ -1041,7 +1124,6 @@
           }
         }, 1000);
       }
-
       function resetAppToInitial() {
         chatDiv.style.display = "none";
         signalingDiv.style.display = "block";
@@ -1054,10 +1136,6 @@
         hostSection.style.display = "none";
         peerSection.style.display = "none";
       }
-
-      /************************************************************
-       * 14) On Page Unload -> "leave" message
-       ************************************************************/
       window.addEventListener("beforeunload", () => {
         if (dataChannel && dataChannel.readyState === "open") {
           const leaveMsg = {
@@ -1068,12 +1146,95 @@
           dataChannel.send(JSON.stringify(leaveMsg));
         }
       });
-
       /************************************************************
-       * 15) On Page Load -> Start connecting...
+       * 11) File Sharing Implementation
+       ************************************************************/
+      fileShareButton.addEventListener("click", () => {
+        fileInput.click();
+      });
+      fileInput.addEventListener("change", () => {
+        const file = fileInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          const fileData = e.target.result;
+          const messageId = "file-" + Date.now();
+          const fileMsg = {
+            type: "file",
+            name: userName,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            fileData: fileData,
+            time: new Date().toISOString(),
+            messageId: messageId,
+            avatar: userAvatar,
+          };
+          if (dataChannel && dataChannel.readyState === "open") {
+            dataChannel.send(JSON.stringify(fileMsg));
+            displayFileMessage(fileMsg, true);
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+      function displayFileMessage(fileMsg, isSelf) {
+        const msgDiv = document.createElement("div");
+        msgDiv.className = "message" + (isSelf ? " self" : "");
+        msgDiv.dataset.messageId = fileMsg.messageId;
+        let avatarHTML = "";
+        if (fileMsg.avatar) {
+          avatarHTML = `<img src="${fileMsg.avatar}" class="avatar" alt="avatar">`;
+        }
+        const timeString = `<span class="timestamp">${new Date(
+          fileMsg.time
+        ).toLocaleTimeString()}</span>`;
+        let filePreview = "";
+        if (fileMsg.fileType.startsWith("image/")) {
+          filePreview = `<br><img src="${fileMsg.fileData}" alt="${fileMsg.fileName}" style="max-width:200px; border-radius:5px;">`;
+        } else if (fileMsg.fileType.startsWith("text/")) {
+          filePreview = `<br><textarea readonly style="width:100%; height:80px;">${atob(
+            fileMsg.fileData.split(",")[1]
+          )}</textarea>`;
+        } else {
+          filePreview = `<br><a href="${fileMsg.fileData}" download="${fileMsg.fileName}">Download ${fileMsg.fileName}</a>`;
+        }
+        msgDiv.innerHTML = `${avatarHTML}<strong>${fileMsg.name} shared a file:</strong> ${fileMsg.fileName} ${timeString} ${filePreview}`;
+        chatArea.appendChild(msgDiv);
+        chatArea.scrollTop = chatArea.scrollHeight;
+      }
+      function handleIncomingFile(msg) {
+        displayFileMessage(msg, false);
+      }
+      /************************************************************
+       * 12) Markdown Parsing Function
+       ************************************************************/
+      function parseMarkdown(text) {
+        let formatted = text;
+        formatted = formatted.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+        formatted = formatted.replace(/\*(.+?)\*/g, "<em>$1</em>");
+        formatted = formatted.replace(/`(.+?)`/g, "<code>$1</code>");
+        return formatted;
+      }
+      /************************************************************
+       * 13) Avatar Upload
+       ************************************************************/
+      avatarInput.addEventListener("change", () => {
+        const file = avatarInput.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          userAvatar = e.target.result;
+          document.getElementById("avatarPreview").src = userAvatar;
+          document.getElementById("avatarPreview").style.display =
+            "inline-block";
+        };
+        reader.readAsDataURL(file);
+      });
+      /************************************************************
+       * 14) Exit Countdown & Initialization
        ************************************************************/
       (function init() {
-        initiateServerConnection(); // Pings + connects
+        initiateServerConnection();
       })();
     </script>
   </body>
